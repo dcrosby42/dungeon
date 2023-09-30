@@ -17,6 +17,24 @@ class Pos:
         return Pos(self.x + pos.x, self.y + pos.y)
 
 
+class OutputOffsetMgr:
+    """Lets you do:  with output.offset(Pos(1,1)): ..."""
+
+    output: "Output"
+    pos: Pos
+
+    def __init__(self, output: "Output", pos: Pos):
+        self.output = output
+        self.pos = pos
+
+    def __enter__(self) -> Pos:
+        self.output.push(self.pos)
+        return self.pos
+
+    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
+        self.output.pop()
+
+
 class Output:
     """For drawing to the screen, passed the Module.draw"""
 
@@ -45,6 +63,9 @@ class Output:
 
     def clear_offset(self) -> None:
         self.offset_stack = []
+
+    def offset(self, pos: Pos) -> OutputOffsetMgr:
+        return OutputOffsetMgr(self, pos)
 
     def print(self, thing: str) -> None:
         """Print a string in the view"""

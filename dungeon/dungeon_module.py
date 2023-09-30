@@ -45,9 +45,11 @@ class DungeonModule(Module[DungeonState]):
 
     def draw(self, state: DungeonState, output: Output):
         self.draw_ui(state, output)
-        output.push(Pos(1, 1))
-        output.print_at(state.player_pos, "O")
-        output.pop()
+        self.draw_player(state, output)
+
+    def draw_player(self, state: DungeonState, output: Output):
+        with output.offset(Pos(1, 1)):
+            output.print_at(state.player_pos, "O")
 
     def draw_ui(self, state: DungeonState, output: Output):
         """render bound box and labels"""

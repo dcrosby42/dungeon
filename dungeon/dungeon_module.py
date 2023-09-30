@@ -61,13 +61,15 @@ class DungeonModule(Module[DungeonState]):
             elif key == "KEY_DOWN":
                 state.player.pos.y += 1
             elif key == "t":
+                # player takes item
                 item = self.item_at(state, state.player.pos)
                 if item:
                     state.items.remove(item)
                     state.player.items.append(item)
             elif key == "T":
+                # player drops item
                 if len(state.player.items) > 0:
-                    item = state.player.items.pop(0)
+                    item = state.player.items.pop()
                     item.pos.copy_from(state.player.pos)
                     state.items.append(item)
 
@@ -84,7 +86,8 @@ class DungeonModule(Module[DungeonState]):
 
     def item_at(self, state: DungeonState, pos: Pos) -> Optional[Item]:
         """If an Item is at pos, return it"""
-        for item in state.items:
+        # reversed; this finds items in most recently "dropped" order, when they occupy the same pos
+        for item in reversed(state.items):
             if item.pos == pos:
                 return item
         return None
@@ -114,10 +117,15 @@ class DungeonModule(Module[DungeonState]):
         bounds += "#" * width
         output.print_at(Pos(0, 0), bounds)
 
-        # player location
-        output.print_at(
-            Pos(2, height + 1), f"({state.player.pos.x},{state.player.pos.y})"
-        )
-        item = self.item_at(state, state.player.pos)
-        if item:
-            output.print_at(Pos(20, height + 1), f" {item.name} ")
+        # status
+        with output.offset(Pos(0, height + 1)):
+            output.print_at(Pos(2, 0), f"({state.player.pos.x},{state.player.pos.y})")
+            item = self.item_at(state, state.player.pos)
+            if item:
+                output.print_at(Pos(20, 0), f" {item.name} ")
+
+        # inventory
+        with output.offset(Pos(0, height + 2)):
+            output.print_at(
+                Pos(0, 0), f"Inv: {','.join([i.name for i in state.player.items])}"
+            )

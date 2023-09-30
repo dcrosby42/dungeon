@@ -44,11 +44,15 @@ class DungeonModule(Module[DungeonState]):
         return state
 
     def draw(self, state: DungeonState, output: Output):
-        self.draw_ui(output)
-        output.print_at(Pos(1, 1).add(state.player_pos), "O")
+        self.draw_ui(state, output)
+        output.push(Pos(1, 1))
+        output.print_at(state.player_pos, "O")
+        output.pop()
 
-    def draw_ui(self, output):
+    def draw_ui(self, state: DungeonState, output: Output):
         """render bound box and labels"""
+
+        # bounds
         width = MAX_WIDTH + 2
         height = MAX_HEIGHT
         bounds = "#" * width + "\n"
@@ -56,3 +60,6 @@ class DungeonModule(Module[DungeonState]):
             bounds += "#" + (" " * (width - 2)) + "#\n"
         bounds += "#" * width
         output.print_at(Pos(0, 0), bounds)
+
+        # player location
+        output.print_at(Pos(2, height + 1), repr(state.player_pos))

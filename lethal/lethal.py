@@ -17,11 +17,34 @@ class Pos:
         return Pos(self.x + pos.x, self.y + pos.y)
 
 
-@dataclass
 class Output:
     """For drawing to the screen, passed the Module.draw"""
 
     term: Terminal
+    offset_stack: list[Pos]
+
+    def __init__(self, term: Terminal):
+        self.term = term
+        self.offset_stack = []
+
+    def push(self, pos: Pos) -> Pos:
+        """Push an offset onto the stack"""
+        self.offset_stack.append(pos)
+        return pos
+
+    def pop(self) -> Pos:
+        """Pop an offset from the stack"""
+        pos = self.offset_stack.pop()
+        return pos
+
+    def get_offset(self) -> Pos:
+        """Return the current offset, or Pos(0,0)"""
+        if len(self.offset_stack) > 0:
+            return self.offset_stack[-1]
+        return Pos(0, 0)
+
+    def clear_offset(self) -> None:
+        self.offset_stack = []
 
     def print(self, thing: str) -> None:
         """Print a string in the view"""
@@ -30,7 +53,8 @@ class Output:
     # pylint: disable=invalid-name
     def print_at(self, pos: Pos, thing: str) -> None:
         """Print a string in the view at a specific location"""
-        print(self.term.move_xy(pos.x, pos.y) + thing)
+        rel = self.get_offset().add(pos)
+        print(self.term.move_xy(rel.x, rel.y) + thing)
 
 
 @dataclass

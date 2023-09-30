@@ -20,6 +20,7 @@ def main() -> int:
             # Render
             print(term.home + term.clear, end="")
             dm.draw(state, output)
+            output.clear_offset()  # just incase someone forgot to pop
 
             key = term.inkey()
             if key.is_sequence and key.name == "KEY_ESCAPE":

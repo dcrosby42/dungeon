@@ -18,7 +18,7 @@ def main() -> int:
     with term.cbreak(), term.fullscreen(), term.hidden_cursor():
         while True:
             # Render
-            print(term.home + term.clear)
+            print(term.home + term.clear, end="")
             dm.draw(state, output)
 
             key = term.inkey()

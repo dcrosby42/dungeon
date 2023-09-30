@@ -4,7 +4,17 @@ from dataclasses import dataclass
 from typing import TypeVar, Generic
 from blessed import Terminal
 
-T = TypeVar("T")
+
+@dataclass
+class Pos:
+    """x,y coord pair"""
+
+    x: int  # pylint: disable=invalid-name
+    y: int  # pylint: disable=invalid-name
+
+    def add(self, pos: "Pos") -> "Pos":
+        """Compute a new Pos by adding the x,y coords"""
+        return Pos(self.x + pos.x, self.y + pos.y)
 
 
 @dataclass
@@ -12,6 +22,15 @@ class Output:
     """For drawing to the screen, passed the Module.draw"""
 
     term: Terminal
+
+    def print(self, thing: str) -> None:
+        """Print a string in the view"""
+        print(thing, end="")
+
+    # pylint: disable=invalid-name
+    def print_at(self, pos: Pos, thing: str) -> None:
+        """Print a string in the view at a specific location"""
+        print(self.term.move_xy(pos.x, pos.y) + thing)
 
 
 @dataclass
@@ -26,6 +45,9 @@ class Input:
         if key.is_sequence:
             return key.name
         return str(key)
+
+
+T = TypeVar("T")
 
 
 class Module(Generic[T]):

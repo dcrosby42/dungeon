@@ -1,21 +1,13 @@
 """Dungeon Module"""
 from dataclasses import dataclass
-from lethal.lethal import Input, Module, Output
-
-
-@dataclass
-class Pos:
-    """x,y coord pair"""
-
-    x: int  # pylint: disable=invalid-name
-    y: int  # pylint: disable=invalid-name
+from lethal.lethal import Input, Module, Output, Pos
 
 
 @dataclass
 class DungeonState:
     """State of the D"""
 
-    pos: Pos
+    player_pos: Pos
 
 
 MAX_WIDTH = 40
@@ -33,23 +25,34 @@ class DungeonModule(Module[DungeonState]):
     ) -> DungeonState:
         for key in user_input.keys:
             if key == "KEY_RIGHT":
-                state.pos.x += 1
+                state.player_pos.x += 1
             elif key == "KEY_LEFT":
-                state.pos.x -= 1
+                state.player_pos.x -= 1
             elif key == "KEY_UP":
-                state.pos.y -= 1
+                state.player_pos.y -= 1
             elif key == "KEY_DOWN":
-                state.pos.y += 1
-        if state.pos.x < 0:
-            state.pos.x = 0
-        if state.pos.x >= MAX_WIDTH:
-            state.pos.x = MAX_WIDTH - 1
-        if state.pos.y < 0:
-            state.pos.y = 0
-        if state.pos.y >= MAX_HEIGHT:
-            state.pos.y = MAX_HEIGHT - 1
+                state.player_pos.y += 1
+        if state.player_pos.x < 0:
+            state.player_pos.x = 0
+        if state.player_pos.x >= MAX_WIDTH:
+            state.player_pos.x = MAX_WIDTH - 1
+        if state.player_pos.y < 0:
+            state.player_pos.y = 0
+        if state.player_pos.y >= MAX_HEIGHT:
+            state.player_pos.y = MAX_HEIGHT - 1
 
         return state
 
     def draw(self, state: DungeonState, output: Output):
-        print(output.term.move_xy(state.pos.x, state.pos.y) + "X")
+        self.draw_ui(output)
+        output.print_at(Pos(1, 1).add(state.player_pos), "O")
+
+    def draw_ui(self, output):
+        """render bound box and labels"""
+        width = MAX_WIDTH + 2
+        height = MAX_HEIGHT
+        bounds = "#" * width + "\n"
+        for y in range(0, height):
+            bounds += "#" + (" " * (width - 2)) + "#\n"
+        bounds += "#" * width
+        output.print_at(Pos(0, 0), bounds)

@@ -16,6 +16,9 @@ class Pos:
         """Compute a new Pos by adding the x,y coords"""
         return Pos(self.x + pos.x, self.y + pos.y)
 
+    def __eq__(self, other: "Pos") -> bool:
+        return self.x == other.x and self.y == other.y
+
 
 class OutputOffsetMgr:
     """Lets you do:  with output.offset(Pos(1,1)): ..."""

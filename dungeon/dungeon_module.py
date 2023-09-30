@@ -4,10 +4,22 @@ from lethal.lethal import Input, Module, Output, Pos
 
 
 @dataclass
+class Item:
+    """A thing"""
+
+    pos: Pos
+    kind: str
+    name: str
+    view: str
+    value: int
+
+
+@dataclass
 class DungeonState:
     """State of the D"""
 
     player_pos: Pos
+    items: list[Item]
 
 
 MAX_WIDTH = 40
@@ -18,7 +30,12 @@ class DungeonModule(Module[DungeonState]):
     """The Dungeon"""
 
     def create(self) -> DungeonState:
-        return DungeonState(Pos(0, 0))
+        items = [
+            Item(Pos(12, 4), "gold", "Gold Piece", "$", 10),
+            Item(Pos(30, 8), "gold", "Dubloon", "$", 10),
+            Item(Pos(32, 3), "sword", "Bronze Sword", "/", 30),
+        ]
+        return DungeonState(Pos(0, 0), items)
 
     def update(
         self, state: DungeonState, user_input: Input, delta: float
@@ -45,11 +62,16 @@ class DungeonModule(Module[DungeonState]):
 
     def draw(self, state: DungeonState, output: Output):
         self.draw_ui(state, output)
-        self.draw_player(state, output)
+        with output.offset(Pos(1, 1)):
+            self.draw_items(state, output)
+            self.draw_player(state, output)
+
+    def draw_items(self, state: DungeonState, output: Output):
+        for item in state.items:
+            output.print_at(item.pos, item.view)
 
     def draw_player(self, state: DungeonState, output: Output):
-        with output.offset(Pos(1, 1)):
-            output.print_at(state.player_pos, "O")
+        output.print_at(state.player_pos, "O")
 
     def draw_ui(self, state: DungeonState, output: Output):
         """render bound box and labels"""
@@ -64,4 +86,10 @@ class DungeonModule(Module[DungeonState]):
         output.print_at(Pos(0, 0), bounds)
 
         # player location
-        output.print_at(Pos(2, height + 1), repr(state.player_pos))
+        # output.print_at(Pos(2, height + 1), repr(state.player_pos))
+        output.print_at(
+            Pos(2, height + 1), f"({state.player_pos.x},{state.player_pos.y})"
+        )
+        for item in state.items:
+            if state.player_pos == item.pos:
+                output.print_at(Pos(20, height + 1), f" {item.name} ")

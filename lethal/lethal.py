@@ -33,10 +33,11 @@ class Module(Generic[T]):
 
     def create(self) -> T:
         """Create a new instance of this module's state"""
-        return T()
+        raise Exception("implement me")
 
     def update(self, state: T, user_input: Input, delta: float) -> T:
         """Computes the next state based in inputs"""
+        return state
 
     def draw(self, state: T, output: Output):
         """Computes the next state based in inputs"""

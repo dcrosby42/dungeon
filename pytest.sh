@@ -4,8 +4,11 @@ cd $HERE
 
 export PYTHONPATH=.
 
-if [ -z "$VIRTUAL_ENV" ]; then
-  poetry run pytest
-else
-  pytest
-fi
+prefix=""
+[[ -z "$VIRTUAL_ENV" ]] && prefix="poetry run "
+
+echo Running mypy...
+${prefix}mypy dungeon
+
+echo Running pytest...
+${prefix}pytest tests

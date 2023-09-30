@@ -12,7 +12,9 @@ class MyMod(lethal.Module[MyTestState]):
     def create(self) -> MyTestState:
         return MyTestState("")
 
-    def update(self, state: MyTestState, user_input: lethal.Input) -> MyTestState:
+    def update(
+        self, state: MyTestState, user_input: lethal.Input, delta: float
+    ) -> MyTestState:
         state.captured_key = user_input.keys[-1]
         return state
 
@@ -30,5 +32,5 @@ def test_MyMod_update():
     st = mod.create()
 
     inp = lethal.Input(["KEY_RIGHT"])
-    st = mod.update(st, inp)
+    st = mod.update(st, inp, 0)
     assert st.captured_key == "KEY_RIGHT"

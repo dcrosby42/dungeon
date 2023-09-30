@@ -1,5 +1,7 @@
 """Dungeon Module"""
 from dataclasses import dataclass
+from typing import Optional
+
 from lethal.lethal import Input, Module, Output, Pos
 
 
@@ -15,10 +17,18 @@ class Item:
 
 
 @dataclass
+class Player:
+    """The player"""
+
+    pos: Pos
+    items: list[Item]
+
+
+@dataclass
 class DungeonState:
     """State of the D"""
 
-    player_pos: Pos
+    player: Player
     items: list[Item]
 
 
@@ -35,30 +45,49 @@ class DungeonModule(Module[DungeonState]):
             Item(Pos(30, 8), "gold", "Dubloon", "$", 10),
             Item(Pos(32, 3), "sword", "Bronze Sword", "/", 30),
         ]
-        return DungeonState(Pos(0, 0), items)
+        return DungeonState(Player(Pos(0, 0), []), items)
 
     def update(
         self, state: DungeonState, user_input: Input, delta: float
     ) -> DungeonState:
         for key in user_input.keys:
+            # Movement:
             if key == "KEY_RIGHT":
-                state.player_pos.x += 1
+                state.player.pos.x += 1
             elif key == "KEY_LEFT":
-                state.player_pos.x -= 1
+                state.player.pos.x -= 1
             elif key == "KEY_UP":
-                state.player_pos.y -= 1
+                state.player.pos.y -= 1
             elif key == "KEY_DOWN":
-                state.player_pos.y += 1
-        if state.player_pos.x < 0:
-            state.player_pos.x = 0
-        if state.player_pos.x >= MAX_WIDTH:
-            state.player_pos.x = MAX_WIDTH - 1
-        if state.player_pos.y < 0:
-            state.player_pos.y = 0
-        if state.player_pos.y >= MAX_HEIGHT:
-            state.player_pos.y = MAX_HEIGHT - 1
+                state.player.pos.y += 1
+            elif key == "t":
+                item = self.item_at(state, state.player.pos)
+                if item:
+                    state.items.remove(item)
+                    state.player.items.append(item)
+            elif key == "T":
+                if len(state.player.items) > 0:
+                    item = state.player.items.pop(0)
+                    item.pos.copy_from(state.player.pos)
+                    state.items.append(item)
+
+        if state.player.pos.x < 0:
+            state.player.pos.x = 0
+        if state.player.pos.x >= MAX_WIDTH:
+            state.player.pos.x = MAX_WIDTH - 1
+        if state.player.pos.y < 0:
+            state.player.pos.y = 0
+        if state.player.pos.y >= MAX_HEIGHT:
+            state.player.pos.y = MAX_HEIGHT - 1
 
         return state
+
+    def item_at(self, state: DungeonState, pos: Pos) -> Optional[Item]:
+        """If an Item is at pos, return it"""
+        for item in state.items:
+            if item.pos == pos:
+                return item
+        return None
 
     def draw(self, state: DungeonState, output: Output):
         self.draw_ui(state, output)
@@ -71,7 +100,7 @@ class DungeonModule(Module[DungeonState]):
             output.print_at(item.pos, item.view)
 
     def draw_player(self, state: DungeonState, output: Output):
-        output.print_at(state.player_pos, "O")
+        output.print_at(state.player.pos, "O")
 
     def draw_ui(self, state: DungeonState, output: Output):
         """render bound box and labels"""
@@ -86,10 +115,9 @@ class DungeonModule(Module[DungeonState]):
         output.print_at(Pos(0, 0), bounds)
 
         # player location
-        # output.print_at(Pos(2, height + 1), repr(state.player_pos))
         output.print_at(
-            Pos(2, height + 1), f"({state.player_pos.x},{state.player_pos.y})"
+            Pos(2, height + 1), f"({state.player.pos.x},{state.player.pos.y})"
         )
-        for item in state.items:
-            if state.player_pos == item.pos:
-                output.print_at(Pos(20, height + 1), f" {item.name} ")
+        item = self.item_at(state, state.player.pos)
+        if item:
+            output.print_at(Pos(20, height + 1), f" {item.name} ")

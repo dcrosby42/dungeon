@@ -2,7 +2,7 @@
 
 from blessed import Terminal
 
-from lethal.lethal import Input, Output
+from lethal.module import Input, Output
 from .dungeon_module import DungeonModule
 
 

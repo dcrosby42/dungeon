@@ -4,6 +4,10 @@
     "editor.tabSize": 4
   },
   "python.linting.enabled": true,
+  "python.linting.pylintArgs": [
+    "--load-plugins",
+    "pylint_pydantic"
+  ],
   "files.exclude": {
     "**/__pycache__": true
   }

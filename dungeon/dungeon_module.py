@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from typing import Optional, Any
 
-from lethal.lethal import Input, Module, Output, Pos
+from lethal import Input, Module, Output, Pos
 
 
 @dataclass

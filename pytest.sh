@@ -7,8 +7,5 @@ export PYTHONPATH=.
 prefix=""
 [[ -z "$VIRTUAL_ENV" ]] && prefix="poetry run "
 
-echo Running mypy...
-${prefix}mypy dungeon
-
-echo Running pytest...
-${prefix}pytest tests
+# ${prefix}mypy dungeon lethal && ${prefix}pytest tests
+${prefix}mypy dungeon && ${prefix}pytest tests

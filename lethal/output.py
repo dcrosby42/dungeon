@@ -1,29 +1,8 @@
-"""Lethal: this time it's terminal"""
-
-from dataclasses import dataclass
-from typing import TypeVar, Generic
+"""Lethal Output"""
+# from dataclasses import dataclass
+# from typing import TypeVar, Generic, Any
 from blessed import Terminal
-
-
-@dataclass
-class Pos:
-    """x,y coord pair"""
-
-    x: int  # pylint: disable=invalid-name
-    y: int  # pylint: disable=invalid-name
-
-    def add(self, pos: "Pos") -> "Pos":
-        """Compute a new Pos by adding the x,y coords"""
-        return Pos(self.x + pos.x, self.y + pos.y)
-
-    def copy_from(self, pos) -> "Pos":
-        """Update this pos's values from the givn pos"""
-        self.x = pos.x
-        self.y = pos.y
-        return self
-
-    def __eq__(self, other: "Pos") -> bool:
-        return self.x == other.x and self.y == other.y
+from .pos import Pos
 
 
 class OutputOffsetMgr:
@@ -71,9 +50,16 @@ class Output:
         return Pos(0, 0)
 
     def clear_offset(self) -> None:
+        """Removes all offsets"""
         self.offset_stack = []
 
     def offset(self, pos: Pos) -> OutputOffsetMgr:
+        """
+        Output offset context manager.
+        Eg.
+          with output.offset(Pos(3,4)):
+            output.print_at("hi")  # starts at 3,4
+        """
         return OutputOffsetMgr(self, pos)
 
     def print(self, thing: str) -> None:
@@ -85,35 +71,3 @@ class Output:
         """Print a string in the view at a specific location"""
         rel = self.get_offset().add(pos)
         print(self.term.move_xy(rel.x, rel.y) + thing)
-
-
-@dataclass
-class Input:
-    """User input passed to Module.update"""
-
-    keys: list[str]
-
-    @classmethod
-    def key_to_str(cls, key):
-        """Convert keystroke objects to strings"""
-        if key.is_sequence:
-            return key.name
-        return str(key)
-
-
-T = TypeVar("T")
-
-
-class Module(Generic[T]):
-    """Module baseclass"""
-
-    def create(self) -> T:
-        """Create a new instance of this module's state"""
-        raise Exception("implement me")
-
-    def update(self, state: T, user_input: Input, delta: float) -> T:
-        """Computes the next state based in inputs"""
-        return state
-
-    def draw(self, state: T, output: Output):
-        """Computes the next state based in inputs"""

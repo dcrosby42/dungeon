@@ -25,8 +25,9 @@ class Component(BaseModel):
     kind: str | None = Field(default=None)
 
     def __init__(self, **data):
-        kind = type(self).__name__
-        super().__init__(kind=kind, **data)
+        if data.get("kind") is None:
+            data["kind"] = type(self).__name__
+        super().__init__(**data)
 
     def clone(self, eid=None) -> "Component":
         """Create a deep copy of this component.
@@ -35,10 +36,6 @@ class Component(BaseModel):
         if eid:
             copy.eid = eid
         return copy
-
-
-# from pydantic.dataclasses import dataclass
-# @dataclass
 
 
 class Entity(BaseModel):
@@ -93,7 +90,7 @@ class Entity(BaseModel):
 
     def select(self, kind: Type[Component]) -> list[Component]:
         """Get a list of components matching the given kind"""
-        return [comp for comp in list(self.components) if isinstance(comp, kind)]
+        return [comp for comp in self.components if isinstance(comp, kind)]
 
     def get(self, kind: Type[Component]) -> Component:
         """Return the component of given type.

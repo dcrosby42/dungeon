@@ -6,7 +6,7 @@ import pytest
 import pdb
 
 
-class Loc(Component):
+class Loc2(Component):
     x: int
     y: int
 
@@ -27,18 +27,18 @@ def makeAnEntity(eid="e42"):
     ent = Entity(
         eid=eid,
         components=[
-            Loc(x=1, y=2),
+            Loc2(x=1, y=2),
             Obstr(blocker=True),
-            Loc(x=3, y=4),
+            Loc2(x=3, y=4),
         ],
     )
     return ent
 
 
 def test_Component():
-    loc = Loc(eid="the_entity", x=100, y=200)
+    loc = Loc2(eid="the_entity", x=100, y=200)
     assert loc.eid == "the_entity"
-    assert loc.kind == "Loc"
+    assert loc.kind == "Loc2"
     assert loc.x == 100
     assert loc.y == 200
 
@@ -74,9 +74,9 @@ def test_Entity_with_comps():
     ent = makeAnEntity("e37")
     assert ent.eid == "e37"
     assert ent.components == [
-        Loc(eid="e37", x=1, y=2),
+        Loc2(eid="e37", x=1, y=2),
         Obstr(eid="e37", blocker=True),
-        Loc(eid="e37", x=3, y=4),
+        Loc2(eid="e37", x=3, y=4),
     ]
 
 
@@ -98,28 +98,28 @@ def test_Entity_constructor_deep_copies_comps():
 
 def test_Entity_select():
     ent = makeAnEntity()
-    assert ent.select(Loc) == [Loc(eid="e42", x=1, y=2), Loc(eid="e42", x=3, y=4)]
+    assert ent.select(Loc2) == [Loc2(eid="e42", x=1, y=2), Loc2(eid="e42", x=3, y=4)]
     assert ent.select(Obstr) == [Obstr(eid="e42", blocker=True)]
     assert ent.select(Item) == []
 
 
 def test_Entity_get():
     ent = makeAnEntity()
-    assert ent.get(Loc) == Loc(eid="e42", x=1, y=2)
+    assert ent.get(Loc2) == Loc2(eid="e42", x=1, y=2)
     assert ent.get(Obstr) == Obstr(eid="e42", blocker=True)
 
 
 def test_Entity_get_raises_on_miss():
-    ent = Entity(eid="e1", components=[Loc(x=1, y=2)])
+    ent = Entity(eid="e1", components=[Loc2(x=1, y=2)])
     with pytest.raises(NoComponentError) as e_info:
         ent.get(Item)
 
 
 def test_Entity_add():
     ent = Entity(eid="e1")
-    ent.add(Loc(x=10, y=20))
-    loc = ent.get(Loc)
-    assert loc == Loc(eid="e1", x=10, y=20)
+    ent.add(Loc2(x=10, y=20))
+    loc = ent.get(Loc2)
+    assert loc == Loc2(eid="e1", x=10, y=20)
 
 
 def test_Entity_add_deep_copy():
@@ -143,33 +143,33 @@ def test_Entity_add_deep_copy():
 
 def test_Entity_remove():
     ent = makeAnEntity()
-    loc1 = ent.get(Loc)
-    assert loc1 == Loc(eid=ent.eid, x=1, y=2)  # (sanity check)
+    loc1 = ent.get(Loc2)
+    assert loc1 == Loc2(eid=ent.eid, x=1, y=2)  # (sanity check)
 
     rloc1 = ent.remove(loc1)
-    assert rloc1 == Loc(eid=None, x=1, y=2)
+    assert rloc1 == Loc2(eid=None, x=1, y=2)
     assert ent.remove(loc1) == None  # already gone
 
-    loc2 = ent.get(Loc)
-    assert loc2 == Loc(eid=ent.eid, x=3, y=4)  # (sanity check)
+    loc2 = ent.get(Loc2)
+    assert loc2 == Loc2(eid=ent.eid, x=3, y=4)  # (sanity check)
 
     rloc2 = ent.remove(loc2)
-    assert rloc2 == Loc(eid=None, x=3, y=4)
+    assert rloc2 == Loc2(eid=None, x=3, y=4)
     assert ent.remove(loc2) == None  # already gone
 
     # See no more Locs
     with pytest.raises(NoComponentError) as e_info:
-        ent.get(Loc)
+        ent.get(Loc2)
 
 
 def test_Entity_contains():
     ent = makeAnEntity()
-    assert ent.contains(Loc(eid=ent.eid, x=1, y=2)) == True
-    assert ent.contains(Loc(eid=None, x=1, y=2)) == False
+    assert ent.contains(Loc2(eid=ent.eid, x=1, y=2)) == True
+    assert ent.contains(Loc2(eid=None, x=1, y=2)) == False
 
 
 def test_Entity_has_any():
     ent = makeAnEntity()
-    assert ent.has_any(Loc) == True
+    assert ent.has_any(Loc2) == True
     assert ent.has_any(Obstr) == True
     assert ent.has_any(Item) == False

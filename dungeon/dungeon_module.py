@@ -133,7 +133,7 @@ class DungeonModule(Module[DungeonState]):
             ),
         ]
         messages = [
-            "Move with arrow keys.  t=take, T=drop",
+            "Move with arrow keys.  t=take, T=drop, Space=action",
             "Welcome to the Dungeon!",
         ]
         return DungeonState(

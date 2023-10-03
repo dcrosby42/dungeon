@@ -2,7 +2,6 @@
 from typing import Type
 
 from pydantic import BaseModel, Field
-import pdb
 
 EntityId = str
 
@@ -133,7 +132,8 @@ class EntityStore(BaseModel):
     def create_entity(self) -> Entity:
         """Create a new empty Entity with the next eid"""
         ent = Entity(eid=self._next_eid())
-        self.entities[ent.eid] = ent  # pylint: disable=no-member
+        # pylint: disable=unsupported-assignment-operation
+        self.entities[ent.eid] = ent
         return ent
 
     def _next_eid(self) -> EntityId:

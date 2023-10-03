@@ -1,9 +1,13 @@
 # pylint: disable-all
-from lethal.ecs import Entity, Component, NoComponentError
+from lethal.ecs import EntityStore, Entity, Component, NoComponentError, NoEntityError
 from typing import Any
 import pytest
 
 import pdb
+
+#
+# Helpers
+#
 
 
 class Loc2(Component):
@@ -16,14 +20,14 @@ class Obstr(Component):
 
 
 class Item(Component):
-    name: bool
+    name: str
 
 
 class Annot(Component):
     notes: dict[str, Any]
 
 
-def makeAnEntity(eid="e42"):
+def make_an_entity(eid="e42"):
     ent = Entity(
         eid=eid,
         components=[
@@ -33,6 +37,11 @@ def makeAnEntity(eid="e42"):
         ],
     )
     return ent
+
+
+#
+# Component
+#
 
 
 def test_Component():
@@ -64,6 +73,11 @@ def test_Component_clone():
     assert ann_orig.eid == "e9"
 
 
+#
+# Entity
+#
+
+
 def test_Entity_defaults_to_empty_component_list():
     ent = Entity(eid="e1")
     assert ent.eid == "e1"
@@ -71,7 +85,7 @@ def test_Entity_defaults_to_empty_component_list():
 
 
 def test_Entity_with_comps():
-    ent = makeAnEntity("e37")
+    ent = make_an_entity("e37")
     assert ent.eid == "e37"
     assert ent.components == [
         Loc2(eid="e37", x=1, y=2),
@@ -97,14 +111,14 @@ def test_Entity_constructor_deep_copies_comps():
 
 
 def test_Entity_select():
-    ent = makeAnEntity()
+    ent = make_an_entity()
     assert ent.select(Loc2) == [Loc2(eid="e42", x=1, y=2), Loc2(eid="e42", x=3, y=4)]
     assert ent.select(Obstr) == [Obstr(eid="e42", blocker=True)]
     assert ent.select(Item) == []
 
 
 def test_Entity_get():
-    ent = makeAnEntity()
+    ent = make_an_entity()
     assert ent.get(Loc2) == Loc2(eid="e42", x=1, y=2)
     assert ent.get(Obstr) == Obstr(eid="e42", blocker=True)
 
@@ -142,7 +156,7 @@ def test_Entity_add_deep_copy():
 
 
 def test_Entity_remove():
-    ent = makeAnEntity()
+    ent = make_an_entity()
     loc1 = ent.get(Loc2)
     assert loc1 == Loc2(eid=ent.eid, x=1, y=2)  # (sanity check)
 
@@ -163,13 +177,91 @@ def test_Entity_remove():
 
 
 def test_Entity_contains():
-    ent = makeAnEntity()
+    ent = make_an_entity()
     assert ent.contains(Loc2(eid=ent.eid, x=1, y=2)) == True
     assert ent.contains(Loc2(eid=None, x=1, y=2)) == False
 
 
 def test_Entity_has_any():
-    ent = makeAnEntity()
+    ent = make_an_entity()
     assert ent.has_any(Loc2) == True
     assert ent.has_any(Obstr) == True
     assert ent.has_any(Item) == False
+
+
+def test_EntityStore():
+    estore = EntityStore()
+    assert estore._next_eid() == "e1"
+    assert estore._next_eid() == "e2"
+    for i in range(1, 10):
+        estore._next_eid()
+    assert estore._next_eid() == "e12"
+
+
+def test_EntityStore_create_entity():
+    estore = EntityStore()
+    assert estore._next_eid() == "e1"
+    assert estore._next_eid() == "e2"
+    for i in range(1, 10):
+        estore._next_eid()
+    assert estore._next_eid() == "e12"
+
+
+def test_EntityStore_create_entity():
+    estore = EntityStore()
+    e1 = estore.create_entity()
+    e2 = estore.create_entity()
+    assert e1 == Entity(eid="e1")
+    assert e2 == Entity(eid="e2")
+
+
+def make_an_entity_store():
+    estore = EntityStore()
+    e1 = estore.create_entity()
+    e1.add(Loc2(x=1, y=1))
+
+    e2 = estore.create_entity()
+    e2.add(Loc2(x=2, y=2))
+    e2.add(Item(name="Money"))
+
+    e3 = estore.create_entity()
+    e3.add(Loc2(x=3, y=3))
+    e3.add(Obstr(blocker=True))
+    e3.add(Item(name="Fountain"))
+
+    return estore
+
+
+def test_EntityStore_get():
+    estore = make_an_entity_store()
+    ent = estore.get("e2")
+    assert ent.eid == "e2"
+    assert ent.get(Item) == Item(eid="e2", name="Money")
+
+
+def test_EntityStore_get_NoEntityError():
+    estore = make_an_entity_store()
+    with pytest.raises(NoEntityError) as e_info:
+        estore.get("nope")
+
+
+def test_EntityStore_select_empty():
+    estore = make_an_entity_store()
+    ents = estore.select(Annot)
+    assert ents == []
+
+
+def test_EntityStore_select_based_on_single_kind():
+    estore = make_an_entity_store()
+    ents = estore.select(Item)
+    assert len(ents) == 2
+    assert ents[0].get(Item).name == "Money"
+    assert ents[1].get(Item).name == "Fountain"
+
+
+def test_EntityStore_select_based_on_multiple_kinds():
+    estore = make_an_entity_store()
+    ents = estore.select(Obstr, Item)
+    assert len(ents) == 1
+    assert ents[0].get(Item).name == "Fountain"
+    assert ents[0].get(Obstr).blocker == True

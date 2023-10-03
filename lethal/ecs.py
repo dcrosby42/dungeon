@@ -18,6 +18,13 @@ class NoComponentError(EcsError):
         super().__init__(f"Entity {ent.eid} has no {comp_kind.__name__} component(s)")
 
 
+class NoEntityError(EcsError):
+    """Raised when you try to get an Entity by eid that doesn't exist in the EntityStore"""
+
+    def __init__(self, eid: "EntityId"):
+        super().__init__(f"EntityStore has no Entity with eid {eid}")
+
+
 class Component(BaseModel):
     """A Component has an entity id (eid) and a kind (auto-set to the name of the class)"""
 
@@ -88,8 +95,17 @@ class Entity(BaseModel):
         except NoComponentError:
             return False
 
+    def has_all(self, kinds: list[Type[Component]]) -> bool:
+        """Returns True if this Entity has a Component of each kind"""
+        for kind in kinds:
+            hits = self.select(kind)
+            if len(hits) == 0:
+                return False
+        return True
+
     def select(self, kind: Type[Component]) -> list[Component]:
         """Get a list of components matching the given kind"""
+        # pylint: disable=not-an-iterable
         return [comp for comp in self.components if isinstance(comp, kind)]
 
     def get(self, kind: Type[Component]) -> Component:
@@ -106,3 +122,33 @@ class Entity(BaseModel):
 # Entity.remove_all ?
 
 # Entity.remove_all(kind) ?
+
+
+class EntityStore(BaseModel):
+    """EntityStore creates, holds and finds Entities"""
+
+    entities: dict[EntityId, Entity] = Field(default={})
+    eid_counter: int = Field(default=0)
+
+    def create_entity(self) -> Entity:
+        """Create a new empty Entity with the next eid"""
+        ent = Entity(eid=self._next_eid())
+        self.entities[ent.eid] = ent  # pylint: disable=no-member
+        return ent
+
+    def _next_eid(self) -> EntityId:
+        """Generate the next eid"""
+        self.eid_counter += 1
+        return f"e{self.eid_counter}"
+
+    def get(self, eid: EntityId) -> Entity:
+        """Returns an Entity given an eid.
+        Raises NoEntityError if not found."""
+        ent = self.entities.get(eid)  # pylint: disable=no-member
+        if not ent:
+            raise NoEntityError(eid)
+        return ent
+
+    def select(self, *kinds: Type[Component]) -> list[Entity]:
+        """Return a list of all Entities containing Components of all the given kinds"""
+        return [ent for _, ent in self.entities.items() if ent.has_all(kinds)]

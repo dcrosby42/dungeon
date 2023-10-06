@@ -4,7 +4,23 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, Field
 
-from lethal import Component, EntityStore, Input, Loc, Module, Output, Pos
+from lethal import (
+    Component,
+    EntityStore,
+    Entity,
+    Input,
+    Loc,
+    Module,
+    Output,
+    Pos,
+    System,
+    SideEffect,
+)
+
+from .controller import Controller, ControllerSystem
+
+
+# import pdb
 
 # @dataclass
 # class Item:
@@ -116,18 +132,6 @@ class Mob(Component):
     cat: MobCategory
 
 
-class Controller(Component):
-    """Controller state"""
-
-    name: str
-    up: bool | None = Field(default=False)
-    down: bool | None = Field(default=False)
-    left: bool | None = Field(default=False)
-    right: bool | None = Field(default=False)
-    take: bool | None = Field(default=False)
-    drop: bool | None = Field(default=False)
-
-
 class Place(Component):
     """A place on the map"""
 
@@ -142,72 +146,138 @@ class Health(Component):
     current: int
 
 
-class System(BaseModel):
-    """ECS System base class"""
-
-    estore: EntityStore
-    user_input: Input
-
-    # def __init__(self, estore: EntityStore, user_input: Input):
-    #     self.estore = estore
-    #     self.user_input = user_input
-
-    def update(self) -> None:
-        """No-op"""
-        return None
+class Weapon(Component):
+    """A thing that deals damage"""
 
 
-class ControllerSystem(System):
-    """Updates Controller components based on user input"""
+class AttackResult(BaseModel):
+    """Report on an attack"""
 
-    def update(self) -> None:
-        for ent in self.estore.select(Controller):
-            con = ent.get(Controller)
-            if con.name == "controller1":
-                self._apply_input(con)
-
-    def _apply_input(self, con: Controller):
-        # map keys to controller attr names
-        key_map = {
-            "KEY_RIGHT": "right",
-            "KEY_LEFT": "left",
-            "KEY_UP": "up",
-            "KEY_DOWN": "down",
-            " ": "action",
-            "t": "take",
-            "T": "drop",
-        }
-        # Clear controller state:
-        for _, attr in key_map.items():
-            setattr(con, attr, False)
-
-        # Update controller state::
-        for key in self.user_input.keys:
-            attr = key_map.get(key)
-            if attr:
-                setattr(con, attr, True)
+    hit: bool = Field(default=False)
+    damage: int = Field(default=0)
+    defeated: bool = Field(default=False)
 
 
-class PlayerSystem(System):
+class MsgSideEffect(SideEffect):
+    """Send a log msg to the ui"""
+
+    text: str
+
+
+class DungeonSystem(System):
+    """Extended ECS system adds helpers for our particular game setup"""
+
+    def _message(self, text) -> MsgSideEffect:
+        return self.add_side_effect(MsgSideEffect(text=text))
+
+
+class PlayerSystem(DungeonSystem):
     """Update Player(s)"""
 
     def update(self) -> None:
-        for e in self.estore.select(Player, Controller, Loc):
-            con = e.get(Controller)
-            # p = e.get(Player)
-            loc = e.get(Loc)
-            if con.right:
-                loc.x += 1
-            if con.left:
-                loc.x -= 1
-            if con.up:
-                loc.y -= 1
-            if con.down:
-                loc.y += 1
-            if con.take:
-                pass
-            if con.drop:
-                pass
+        for player_e in self.estore.select(Player, Controller, Loc):
+            loc = player_e.get(Loc)
+            con = player_e.get(Controller)
+
+            loc_backup = loc.model_copy()
+            self._move(loc, con)
+
+            for other_e in self._getCollisions(loc):
+                if other_e.has_any(Place):
+                    if other_e.get(Place).blocked:
+                        # undo move
+                        loc.x = loc_backup.x
+                        loc.y = loc_backup.y
+                        self._message(
+                            f"Bonk! {other_e.get(Place).name} blocks the way."
+                        )
+                        # TODO: Handle place actions
+                        # elif con.action :
+                        # if other_e.has_any(Door):
+                elif other_e.has_any(Item):
+                    # TODO: Pickup items
+                    # item_e = other_e.get(Item)
+                    # item_e.remove(Drawable)
+                    # item_e.add(Link(eid=player_e))
+                    ...
+                elif other_e.has_any(Mob):
+                    # Mob encounter!
+
+                    # prevent motion
+                    loc.x = loc_backup.x
+                    loc.y = loc_backup.y
+
+                    self._attack_mob(player_e, other_e)
+
+    def _attack_mob(self, player_e: Entity, mob_e: Entity) -> AttackResult:
+        hit = True
+        damage = 1
+        if hit:
+            mob_health = mob_e.get(Health)
+            mob_health.current = max(mob_health.current - damage, 0)
+            if mob_health.current <= 0:
+                self.estore.destroy_entity(mob_e)
+                self._message(f"{mob_e.get(Mob).name} defeated!")
+            else:
+                self._message(f"{mob_e.get(Mob).name} hit for {damage}")
+        else:
+            self._message(f"{other_e.get(Mob).name} missed")
+
+        # obst = self.obstacle_at(state, state.player.pos)
+        # if obst:
+        #     if obst.is_blocker:
+        #         state.player.pos.copy_from(last_pos)
+        #         state.messages.append(obst.name + " is blocking the way")
+        #     elif do_action:
+        #         if obst.kind == "door":
+        #             # locked door?
+        #             door = obst
+        #             req_key = door.extras.get("locked")
+        #             if req_key:
+        #                 keys = [
+        #                     item for item in state.player.items if item.kind == req_key
+        #                 ]
+        #                 if len(keys) > 0:
+        #                     # We have a key! Use it to unlock the door
+        #                     door_key = keys[0]
+        #                     del door.extras["locked"]
+        #                     door.view = "_"
+        #                     state.player.items.remove(door_key)
+        #                     state.messages.append(
+        #                         f"Unlocked {door.name} with {door_key.name}"
+        #                     )
+        #             else:
+        #                 # do door
+        #                 state.messages.append(f"Opened door {door.name}")
+
+        # # Mob encounter!
+        # mob = self.mob_at(state, state.player.pos)
+        # if mob and mob.health.is_alive():
+        #     state.player.pos.copy_from(last_pos)
+        #     state = self.player_attack_mob(state, mob)
+
+    def _move(self, loc: Loc, con: Controller) -> None:
+        if con.right:
+            loc.x = min(loc.x + 1, ROOM_WIDTH - 1)
+        if con.left:
+            loc.x = max(loc.x - 1, 0)
+        if con.up:
+            loc.y = max(loc.y - 1, 0)
+        if con.down:
+            loc.y = min(loc.y + 1, ROOM_HEIGHT - 1)
+        if con.take:
+            pass
+        if con.drop:
+            pass
+
+    def _getCollisions(self, loc: Loc):
+        def hitting(ent: Entity, loc: Loc):
+            if ent.eid != loc.eid:
+                eloc = ent.get(Loc)
+                return eloc.x == loc.x and eloc.y == loc.y
+            return False
+
+        return [e for e in self.estore.select(Loc) if hitting(e, loc)]
 
         #     elif key == "t":
         #         # player takes item
@@ -287,7 +357,7 @@ class DungeonModule(Module[DungeonState]):
         player = estore.create_entity()
         player.add(Player())
         player.add(Health(max=10, current=10))
-        player.add(Controller(name="player1"))
+        player.add(Controller(name="controller1"))
         player.add(Text(text="O"))
         player.add(Loc(x=0, y=0))
 
@@ -300,7 +370,7 @@ class DungeonModule(Module[DungeonState]):
 
         slime2 = estore.create_entity()
         slime2.add(Mob(cat="enemy", name="Slime"))
-        slime2.add(Health(max=3, current=1))
+        slime2.add(Health(max=3, current=3))
         slime2.add(Text(text="@"))
         slime2.add(Loc(x=10, y=4))
         # TODO: Drops
@@ -314,8 +384,28 @@ class DungeonModule(Module[DungeonState]):
     def update(
         self, state: DungeonState, user_input: Input, delta: float
     ) -> DungeonState:
-        ControllerSystem(state.estore).update(user_input)
-        PlayerSystem(state.estore).update(user_input)
+        # Execute System chain
+        side_effects = []
+        systems = [
+            ControllerSystem,
+            PlayerSystem,
+        ]
+        for new_system in systems:
+            s = new_system(estore=state.estore, user_input=user_input)
+            s.update()
+            side_effects.extend(s.side_effects)
+
+        # Handle side effects
+        for se in side_effects:
+            if isinstance(se, MsgSideEffect):
+                state.messages.append(se.text)
+
+            # for evt in s.events:
+            #     if evt.get("collision"):
+            #         col = evt["collision"]
+            #         col_from = col["from"].eid
+            #         col_to = col["to"].eid
+            #         state.messages.append(f"COLLISION: from={col_from} to={col_to}")
 
         # do_action = False
 
@@ -480,6 +570,12 @@ class DungeonModule(Module[DungeonState]):
             + "\n".join(list(reversed(state.messages))[0:5])
             + output.term.normal,
         )
+
+        # for e in state.estore.select(Controller):
+        #     con = e.get(Controller)
+        #     output.print_at(
+        #         Pos(0, height + 3), output.term.blue + repr(con) + output.term.normal
+        #     )
 
         # bounds
         hbar = "+" + ("-" * (width - 2)) + "+"

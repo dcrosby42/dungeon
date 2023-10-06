@@ -239,6 +239,18 @@ def test_EntityStore_get():
     assert ent.get(Item) == Item(eid="e2", name="Money")
 
 
+def test_EntityStore_destroy_entity():
+    estore = make_an_entity_store()
+    assert len(estore.entities) == 3
+    # See e2:
+    ent = estore.get("e2")
+    estore.destroy_entity(ent)
+    # Now... it should be gone:
+    with pytest.raises(NoEntityError) as e_info:
+        estore.get("e2")
+    assert len(estore.entities) == 2
+
+
 def test_EntityStore_get_NoEntityError():
     estore = make_an_entity_store()
     with pytest.raises(NoEntityError) as e_info:

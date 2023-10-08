@@ -257,7 +257,7 @@ def test_EntityStore_get_NoEntityError():
         estore.get("nope")
 
 
-def test_EntityStore_select_empty():
+def test_EntityStore_select_when_empty():
     estore = make_an_entity_store()
     ents = estore.select(Annot)
     assert ents == []
@@ -277,3 +277,13 @@ def test_EntityStore_select_based_on_multiple_kinds():
     assert len(ents) == 1
     assert ents[0].get(Item).name == "Fountain"
     assert ents[0].get(Obstr).blocker == True
+
+
+def test_EntityStore_select__all():
+    """The select() method should return all the entities, if given empty args"""
+    estore = make_an_entity_store()
+    ents = estore.select()
+    assert len(ents) == 3
+    assert ents[0].get(Loc2).x == 1
+    assert ents[1].get(Item).name == "Money"
+    assert ents[2].get(Obstr).blocker == True

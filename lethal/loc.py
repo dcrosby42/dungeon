@@ -5,6 +5,7 @@ so we're building-in some conveniences.
 
 from .ecs import Component
 from .pos import Pos
+from pydantic import Field
 
 
 class Loc(Component):

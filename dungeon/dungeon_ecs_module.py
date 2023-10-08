@@ -111,6 +111,10 @@ class Text(Component):
     text: str
 
 
+class Drawable(Component):
+    layer: int | None = Field(default=0)
+
+
 class Item(Component):
     """A thing you can get"""
 
@@ -351,34 +355,13 @@ class DungeonModule(Module[DungeonState]):
         self.draw_ui(state, output)
 
         with output.offset(Pos(1, 1)):  # offset to be within the UI borders
-            for ent in state.estore.select(Text, Loc, Room):
+            for ent in sorted(
+                state.estore.select(Drawable, Loc, Room),
+                key=lambda e: e.get(Drawable).layer,
+            ):
+                # for ent in state.estore.select(Drawable, Loc, Room):
                 if ent.get(Room).room_id == state.current_room_id:
                     output.print_at(ent.get(Loc).to_pos(), ent.get(Text).text)
-            # state.messages.append(f"Text: {ent.get(Text).text} {ent.get(Loc).to_pos()}")
-            # pos = ent.get(Loc).to_pos()
-            # text = ent.get(Text).text
-            # output.print_at(pos, text)
-
-        # with output.offset(Pos(1, 1)):
-        #     self.draw_obstacles(state, output)
-        #     self.draw_items(state, output)
-        #     self.draw_mobs(state, output)
-        #     self.draw_player(state, output)
-
-    # def draw_items(self, state: DungeonState, output: Output):
-    #     for item in state.items:
-    #         output.print_at(item.pos, item.view)
-
-    # def draw_obstacles(self, state: DungeonState, output: Output):
-    #     for obst in state.obstacles:
-    #         output.print_at(obst.pos, obst.view)
-
-    # def draw_mobs(self, state: DungeonState, output: Output):
-    #     for mob in state.mobs:
-    #         output.print_at(mob.pos, mob.view)
-
-    # def draw_player(self, state: DungeonState, output: Output):
-    #     output.print_at(state.player.pos, "O")
 
     def draw_ui(self, state: DungeonState, output: Output):
         """render bound box and labels"""
@@ -431,6 +414,16 @@ class DungeonModule(Module[DungeonState]):
 
     def _init_entity_store(self):
         estore = EntityStore()
+
+        player = estore.create_entity()
+        player.add(Player())
+        player.add(Health(max=10, current=10))
+        player.add(Controller(name="controller1"))
+        player.add(Text(text="O"))
+        player.add(Loc(x=70, y=10))
+        player.add(Drawable(layer=10))
+        player.add(Room(room_id="room1"))
+
         self._add_room1(estore)
         self._add_room2(estore)
         return estore
@@ -462,13 +455,6 @@ class DungeonModule(Module[DungeonState]):
         door.add(Loc(x=ROOM_WIDTH - 5, y=ROOM_HEIGHT - 1))
         door.add(Text(text="#"))
 
-        player = estore.create_entity()
-        player.add(Player())
-        player.add(Health(max=10, current=10))
-        player.add(Controller(name="controller1"))
-        player.add(Text(text="O"))
-        player.add(Loc(x=70, y=10))
-
         slime1 = estore.create_entity()
         slime1.add(Mob(cat="enemy", name="Slime"))
         slime1.add(Health(max=3, current=3))
@@ -485,6 +471,7 @@ class DungeonModule(Module[DungeonState]):
 
         for e in estore.select():
             e.add(Room(room_id="room1"))
+            e.add(Drawable())
 
     def _add_room2(self, estore):
         gold1 = estore.create_entity()
@@ -492,6 +479,7 @@ class DungeonModule(Module[DungeonState]):
         gold1.add(Loc(x=20, y=10))
         gold1.add(Text(text="$"))
         gold1.add(Room(room_id="room2"))
+        gold1.add(Drawable())
 
         door = estore.create_entity()
         door.add(Place(name="Door"))
@@ -499,6 +487,7 @@ class DungeonModule(Module[DungeonState]):
         door.add(Room(room_id="room2"))
         door.add(Loc(x=4, y=0))
         door.add(Text(text="#"))
+        door.add(Drawable())
 
         # door = estore.create_entity()
         # door.add(Place(name="Door"))

@@ -221,7 +221,7 @@ class PlayerSystem(DungeonSystem):
             else:
                 self._message(f"{mob_e.get(Mob).name} hit for {damage}")
         else:
-            self._message(f"{other_e.get(Mob).name} missed")
+            self._message(f"{mob_e.get(Mob).name} missed")
 
         # obst = self.obstacle_at(state, state.player.pos)
         # if obst:

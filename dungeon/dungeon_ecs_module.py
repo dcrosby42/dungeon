@@ -97,7 +97,7 @@ class DungeonState:
     """State of the D"""
 
     estore: EntityStore
-    current_room_id: str
+    my_player_id: str
     messages: list[str]
 
 
@@ -125,6 +125,8 @@ class Item(Component):
 
 class Player(Component):
     """Indicates a player"""
+
+    player_id: str
 
 
 MobCategory = str
@@ -220,9 +222,9 @@ class PlayerSystem(DungeonSystem):
                                 player_e.get(Loc).x = dest_door.get(Loc).x
                                 player_e.get(Loc).y = dest_door.get(Loc).y
                                 player_e.get(Room).room_id = dest_room
-                                self.add_side_effect(
-                                    RoomSideEffect(to_room_id=dest_room)
-                                )
+                                # self.add_side_effect(
+                                #     RoomSideEffect(to_room_id=dest_room)
+                                # )
 
                 elif other_e.has_any(Item):
                     # TODO: Pickup items
@@ -322,7 +324,7 @@ class DungeonModule(Module[DungeonState]):
             "Welcome to the Dungeon!",
         ]
 
-        return DungeonState(estore=estore, current_room_id="room1", messages=messages)
+        return DungeonState(estore=estore, my_player_id="player1", messages=messages)
 
     def update(
         self, state: DungeonState, user_input: Input, delta: float
@@ -354,13 +356,22 @@ class DungeonModule(Module[DungeonState]):
     def draw(self, state: DungeonState, output: Output):
         self.draw_ui(state, output)
 
+        player_e = next(
+            (
+                e
+                for e in state.estore.select(Player)
+                if e.get(Player).player_id == state.my_player_id
+            )
+        )
+        room_id = player_e.get(Room).room_id
+
         with output.offset(Pos(1, 1)):  # offset to be within the UI borders
             for ent in sorted(
                 state.estore.select(Drawable, Loc, Room),
                 key=lambda e: e.get(Drawable).layer,
             ):
                 # for ent in state.estore.select(Drawable, Loc, Room):
-                if ent.get(Room).room_id == state.current_room_id:
+                if ent.get(Room).room_id == room_id:
                     output.print_at(ent.get(Loc).to_pos(), ent.get(Text).text)
 
     def draw_ui(self, state: DungeonState, output: Output):
@@ -416,7 +427,7 @@ class DungeonModule(Module[DungeonState]):
         estore = EntityStore()
 
         player = estore.create_entity()
-        player.add(Player())
+        player.add(Player(player_id="player1"))
         player.add(Health(max=10, current=10))
         player.add(Controller(name="controller1"))
         player.add(Text(text="O"))
@@ -488,9 +499,3 @@ class DungeonModule(Module[DungeonState]):
         door.add(Loc(x=4, y=0))
         door.add(Text(text="#"))
         door.add(Drawable())
-
-        # door = estore.create_entity()
-        # door.add(Place(name="Door"))
-        # door.add(Loc(x=ROOM_WIDTH - 5, y=ROOM_HEIGHT - 1))
-        # door.add(Text(text="#"))
-        # door.add(Room(name="room2"))

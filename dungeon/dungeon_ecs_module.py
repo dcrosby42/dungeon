@@ -1,169 +1,23 @@
 """Dungeon Module using ECS"""
 # from typing import Any, Optional
-from dataclasses import dataclass
 
-from pydantic import BaseModel, Field
 
 from lethal import (
-    Component,
     EntityStore,
     Entity,
     Input,
     Loc,
     Module,
     Output,
-    Pos,
     System,
     SideEffect,
 )
 
-from .controller import Controller, ControllerSystem
-
-
-# import pdb
-
-# @dataclass
-# class Item:
-#     """A thing you can take"""
-
-#     pos: Pos
-#     kind: str
-#     name: str
-#     view: str
-#     value: int
-
-
-# @dataclass
-# class Obstacle:
-#     """A thing you run into"""
-
-#     pos: Pos
-#     kind: str
-#     name: str
-#     view: str
-#     is_blocker: bool
-#     extras: dict[str, Any]
-
-
-# @dataclass
-# class Health:
-#     """Health component"""
-
-#     max_hp: int
-#     current_hp: int
-
-#     def is_alive(self) -> bool:
-#         """Return True if health remaining"""
-#         return self.current_hp > 0
-
-#     def is_dead(self) -> bool:
-#         """Return True if health depleted"""
-#         return self.current_hp <= 0
-
-#     def damage(self, points: int):
-#         """Reduce HP"""
-#         self.current_hp -= points
-
-#     def heal(self, points: int):
-#         """Increase HP up to max"""
-#         self.current_hp += points
-#         if self.current_hp > self.max_hp:
-#             self.current_hp = self.max_hp
-
-
-# @dataclass
-# class Mob:
-#     """A monster"""
-
-#     pos: Pos
-#     kind: str
-#     name: str
-#     view: str
-#     health: Health
-#     drops: list[Item]
-
-
-# @dataclass
-# class Player:
-#     """The player"""
-
-#     pos: Pos
-#     items: list[Item]
-#     health: Health
-
-
-@dataclass
-class DungeonState:
-    """State of the D"""
-
-    estore: EntityStore
-    my_player_id: str
-    messages: list[str]
-
-
-ROOM_WIDTH = 80
-ROOM_HEIGHT = 15
-
-
-class Text(Component):
-    """Drawable string"""
-
-    text: str
-
-
-class Drawable(Component):
-    layer: int | None = Field(default=0)
-
-
-class Item(Component):
-    """A thing you can get"""
-
-    cat: str
-    name: str
-    value: int
-
-
-class Player(Component):
-    """Indicates a player"""
-
-    player_id: str
-
-
-MobCategory = str
-
-
-class Mob(Component):
-    """Indicates a non-player creature"""
-
-    name: str
-    cat: MobCategory
-
-
-class Place(Component):
-    """A place on the map"""
-
-    name: str
-    blocked: bool | None = Field(default=False)
-
-
-class Health(Component):
-    """Creature or player health"""
-
-    max: int
-    current: int
-
-
-class Room(Component):
-    """Relates an entity to a room"""
-
-    room_id: str
-
-
-class Door(Component):
-    """Doors link to doors by id"""
-
-    door_id: str
-    to_door_id: str
+from .dungeon_state import DungeonState
+from .dungeon_renderer import DungeonRenderer
+from .dungeon_comps import *
+from .dungeon_comps import ROOM_WIDTH, ROOM_HEIGHT
+from .controller_system import Controller, ControllerSystem
 
 
 class MsgSideEffect(SideEffect):
@@ -254,39 +108,6 @@ class PlayerSystem(DungeonSystem):
                 self._message(f"{mob_e.get(Mob).name} hit for {damage}")
         else:
             self._message(f"{mob_e.get(Mob).name} missed")
-
-        # obst = self.obstacle_at(state, state.player.pos)
-        # if obst:
-        #     if obst.is_blocker:
-        #         state.player.pos.copy_from(last_pos)
-        #         state.messages.append(obst.name + " is blocking the way")
-        #     elif do_action:
-        #         if obst.kind == "door":
-        #             # locked door?
-        #             door = obst
-        #             req_key = door.extras.get("locked")
-        #             if req_key:
-        #                 keys = [
-        #                     item for item in state.player.items if item.kind == req_key
-        #                 ]
-        #                 if len(keys) > 0:
-        #                     # We have a key! Use it to unlock the door
-        #                     door_key = keys[0]
-        #                     del door.extras["locked"]
-        #                     door.view = "_"
-        #                     state.player.items.remove(door_key)
-        #                     state.messages.append(
-        #                         f"Unlocked {door.name} with {door_key.name}"
-        #                     )
-        #             else:
-        #                 # do door
-        #                 state.messages.append(f"Opened door {door.name}")
-
-        # # Mob encounter!
-        # mob = self.mob_at(state, state.player.pos)
-        # if mob and mob.health.is_alive():
-        #     state.player.pos.copy_from(last_pos)
-        #     state = self.player_attack_mob(state, mob)
 
     def _move(self, loc: Loc, con: Controller) -> None:
         if con.right:
@@ -432,83 +253,3 @@ class DungeonModule(Module[DungeonState]):
         door.add(Loc(x=4, y=0))
         door.add(Text(text="#"))
         door.add(Drawable())
-
-
-class DungeonRenderer:
-    def __init__(self, state, output):
-        self.state = state
-        self.output = output
-        self.estore = state.estore
-        self.player_id = state.my_player_id
-
-        self.player_ent = next(
-            (
-                e
-                for e in self.state.estore.select(Player)
-                if e.get(Player).player_id == self.player_id
-            )
-        )
-
-    def draw(self):
-        self.draw_ui()
-
-        room_id = self.player_ent.get(Room).room_id
-
-        with self.output.offset(Pos(1, 1)):  # offset to be within the UI borders
-            for ent in sorted(
-                self.state.estore.select(Drawable, Loc, Room),
-                key=lambda e: e.get(Drawable).layer,
-            ):
-                # for ent in state.estore.select(Drawable, Loc, Room):
-                if ent.get(Room).room_id == room_id:
-                    self.output.print_at(ent.get(Loc).to_pos(), ent.get(Text).text)
-
-    def draw_ui(self):
-        """render bound box and labels"""
-        width = ROOM_WIDTH + 2
-        height = ROOM_HEIGHT
-
-        # messages
-        self.output.print_at(
-            Pos(0, height + 3),
-            self.output.term.darkgray
-            + "\n".join(list(reversed(self.state.messages))[0:5])
-            + self.output.term.normal,
-        )
-
-        # Debug controller state:
-        # for e in state.estore.select(Controller):
-        #     con = e.get(Controller)
-        #     output.print_at(
-        #         Pos(0, height + 3), output.term.blue + repr(con) + output.term.normal
-        #     )
-
-        # bounds
-        hbar = "+" + ("-" * (width - 2)) + "+"
-        bounds = hbar + "\n"
-        for y in range(0, height):
-            bounds += "|" + (" " * (width - 2)) + "|\n"
-        bounds += hbar
-        self.output.print_at(Pos(0, 0), bounds)
-
-        # status
-        # with output.offset(Pos(0, height + 1)):
-        #     item_str = ""
-        #     item = self.last_item_at(state, state.player.pos)
-        #     if item:
-        #         item_str = f" {item.name} "
-        #     obst_str = ""
-        #     obst = self.obstacle_at(state, state.player.pos)
-        #     if obst:
-        #         obst_str = f" >> {obst.name} "
-        #     output.print_at(
-        #         Pos(2, 0),
-        #         f"({state.player.pos.x},{state.player.pos.y}){item_str}{obst_str}",
-        #     )
-
-        # inventory
-        # with output.offset(Pos(0, height + 2)):
-        #     output.print_at(
-        #         Pos(0, 0),
-        #         f"{output.term.normal}Gear: {output.term.gold_on_black}{', '.join([i.name for i in state.player.items])}{output.term.normal}",
-        #     )

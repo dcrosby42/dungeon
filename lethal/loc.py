@@ -5,7 +5,6 @@ so we're building-in some conveniences.
 
 from .ecs import Component
 from .pos import Pos
-from pydantic import Field
 
 
 class Loc(Component):
@@ -16,10 +15,10 @@ class Loc(Component):
 
     def add(self, other: "Loc") -> "Loc":
         """Move this Loc by other.x,other.y, return this Loc"""
-        self.x += other.x
-        self.y += other.y
+        self.x += other.x  # pylint: disable=no-member
+        self.y += other.y  # pylint: disable=no-member
         return self
 
     def to_pos(self) -> Pos:
         """Generate a Pos based on this x,y"""
-        return Pos(self.x, self.y)
+        return Pos(self.x, self.y)  # pylint: disable=no-member

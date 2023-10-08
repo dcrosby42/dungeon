@@ -2,7 +2,8 @@
 from typing import Type
 
 from pydantic import BaseModel, Field
-import pdb
+
+from .input import Input
 
 EntityId = str
 
@@ -133,8 +134,13 @@ class EntityStore(BaseModel):
     def create_entity(self) -> Entity:
         """Create a new empty Entity with the next eid"""
         ent = Entity(eid=self._next_eid())
-        self.entities[ent.eid] = ent  # pylint: disable=no-member
+        # pylint: disable=unsupported-assignment-operation
+        self.entities[ent.eid] = ent
         return ent
+
+    def destroy_entity(self, entity: Entity) -> None:
+        """Remove the given entity"""
+        del self.entities[entity.eid]
 
     def _next_eid(self) -> EntityId:
         """Generate the next eid"""
@@ -152,3 +158,27 @@ class EntityStore(BaseModel):
     def select(self, *kinds: Type[Component]) -> list[Entity]:
         """Return a list of all Entities containing Components of all the given kinds"""
         return [ent for _, ent in self.entities.items() if ent.has_all(kinds)]
+
+
+class SideEffect(BaseModel):
+    """A thing systems return to change the world outside"""
+
+
+class System(BaseModel):
+    """ECS System base class"""
+
+    estore: EntityStore
+    user_input: Input
+    side_effects: list[SideEffect] = Field(default=[])
+
+    # def __init__(self, estore: EntityStore, user_input: Input):
+    #     self.estore = estore
+    #     self.user_input = user_input
+
+    def update(self) -> None:
+        """Default behavior: No-op"""
+
+    def add_side_effect(self, side_effect: SideEffect) -> SideEffect:
+        """Record a side effect"""
+        self.side_effects.append(side_effect)
+        return side_effect

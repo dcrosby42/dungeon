@@ -239,13 +239,25 @@ def test_EntityStore_get():
     assert ent.get(Item) == Item(eid="e2", name="Money")
 
 
+def test_EntityStore_destroy_entity():
+    estore = make_an_entity_store()
+    assert len(estore.entities) == 3
+    # See e2:
+    ent = estore.get("e2")
+    estore.destroy_entity(ent)
+    # Now... it should be gone:
+    with pytest.raises(NoEntityError) as e_info:
+        estore.get("e2")
+    assert len(estore.entities) == 2
+
+
 def test_EntityStore_get_NoEntityError():
     estore = make_an_entity_store()
     with pytest.raises(NoEntityError) as e_info:
         estore.get("nope")
 
 
-def test_EntityStore_select_empty():
+def test_EntityStore_select_when_empty():
     estore = make_an_entity_store()
     ents = estore.select(Annot)
     assert ents == []
@@ -265,3 +277,13 @@ def test_EntityStore_select_based_on_multiple_kinds():
     assert len(ents) == 1
     assert ents[0].get(Item).name == "Fountain"
     assert ents[0].get(Obstr).blocker == True
+
+
+def test_EntityStore_select__all():
+    """The select() method should return all the entities, if given empty args"""
+    estore = make_an_entity_store()
+    ents = estore.select()
+    assert len(ents) == 3
+    assert ents[0].get(Loc2).x == 1
+    assert ents[1].get(Item).name == "Money"
+    assert ents[2].get(Obstr).blocker == True

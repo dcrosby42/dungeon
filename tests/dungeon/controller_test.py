@@ -1,5 +1,5 @@
 from lethal import Input, EntityStore
-from dungeon.controller import Controller, ControllerSystem
+from dungeon.controller_system import Controller, ControllerSystem
 import pdb
 
 

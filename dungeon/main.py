@@ -3,7 +3,7 @@
 from blessed import Terminal
 
 from lethal.module import Input, Output
-from .dungeon_ecs_module import DungeonModule
+from .dungeon_module import DungeonModule
 
 
 def main() -> int:

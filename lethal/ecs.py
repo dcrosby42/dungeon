@@ -1,5 +1,5 @@
 """Lethal ECS"""
-from typing import Type
+from typing import Type, TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -44,6 +44,36 @@ class Component(BaseModel):
         if eid:
             copy.eid = eid
         return copy
+
+    def to_dict(self):
+        """Return a dict representation of this Component"""
+        return self.model_dump()
+
+    @classmethod
+    def from_dict(cls, d):
+        """Given a dict of component data, return a Component of the proper subclass"""
+        subclass = cls.find_class(d["kind"])
+
+        return subclass.model_validate(d)
+
+    @classmethod
+    def find_class(cls, name):
+        """Given a Component kind name, find the matching Component subclass"""
+
+        if cls.__name__ == name:
+            return cls
+        for subc in cls.__subclasses__():
+            x = subc.find_class(name)
+            if x:
+                return x
+        return None
+
+
+class EntityDict(TypedDict):
+    """For Entity.{to,from}_dict"""
+
+    eid: str
+    components: list[dict]
 
 
 class Entity(BaseModel):
@@ -118,6 +148,21 @@ class Entity(BaseModel):
         if len(hits) > 0:
             return hits[0]
         raise NoComponentError(self, kind)
+
+    def to_dict(self) -> EntityDict:
+        """Eases serialization"""
+        return {
+            "eid": self.eid,
+            "components": [c.to_dict() for c in self.components],
+        }
+
+    @classmethod
+    def from_dict(cls, ed: EntityDict) -> "Entity":
+        """Given a dictionary w entity data, return an Entity"""
+        return cls(
+            eid=ed["eid"],
+            components=[Component.from_dict(cd) for cd in ed["components"]],
+        )
 
 
 # Entity.remove_all ?

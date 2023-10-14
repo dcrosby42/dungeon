@@ -15,6 +15,10 @@ class Loc2(Component):
     y: int
 
 
+class Loc3(Loc2):
+    ...
+
+
 class Obstr(Component):
     blocker: bool
 
@@ -71,6 +75,25 @@ def test_Component_clone():
     ann_copy2 = ann_orig.clone("new_eid")
     assert ann_copy2.eid == "new_eid"
     assert ann_orig.eid == "e9"
+
+
+def test_Component_to_dict__from_dict():
+    loc = Loc2(eid="the_entity", x=100, y=200)
+    # conver to a plain dictionary:
+    d = loc.to_dict()
+    assert d == {"kind": "Loc2", "eid": "the_entity", "x": 100, "y": 200}
+    # reconstitute to a proper Loc2:
+    new_loc = Loc2.from_dict(d)
+    assert new_loc == Loc2(eid="the_entity", x=100, y=200)
+
+
+def test_Component__find_class():
+    assert Component.find_class("Component") == Component
+    assert Component.find_class("Loc2") == Loc2
+    assert Component.find_class("Loc3") == Loc3
+    assert Component.find_class("Item") == Item
+
+    assert Component.find_class("loc") is None
 
 
 #
@@ -189,6 +212,39 @@ def test_Entity_has_any():
     assert ent.has_any(Item) == False
 
 
+def test_Entity_to_dict__from_dict():
+    ent = make_an_entity()
+    d = ent.to_dict()
+    assert d["eid"] == ent.eid
+    assert len(d["components"]) == 3
+    assert d["components"][0] == {
+        "eid": ent.eid,
+        "kind": "Loc2",
+        "x": 1,
+        "y": 2,
+    }
+    assert d["components"][1] == {
+        "eid": ent.eid,
+        "kind": "Obstr",
+        "blocker": True,
+    }
+    assert d["components"][2] == {
+        "eid": ent.eid,
+        "kind": "Loc2",
+        "x": 3,
+        "y": 4,
+    }
+
+    # Rehydrate the data stucture to a proper Entity:
+    new_ent = Entity.from_dict(d)
+    assert new_ent.eid == ent.eid
+    assert len(new_ent.components) == 3
+    assert new_ent.components[0] == Loc2(eid=ent.eid, x=1, y=2)
+    assert new_ent.components[1] == Obstr(eid=ent.eid, blocker=True)
+    assert new_ent.components[2] == Loc2(eid=ent.eid, x=3, y=4)
+    # pdb.set_trace()
+
+
 def test_EntityStore():
     estore = EntityStore()
     assert estore._next_eid() == "e1"
@@ -287,3 +343,8 @@ def test_EntityStore_select__all():
     assert ents[0].get(Loc2).x == 1
     assert ents[1].get(Item).name == "Money"
     assert ents[2].get(Obstr).blocker == True
+
+
+# def test_EntityStore__serialize():
+#     estore = make_an_entity_store()
+#     x = estore.model_dump()

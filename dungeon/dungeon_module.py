@@ -26,9 +26,7 @@ class DungeonModule(Module[DungeonState]):
 
         return DungeonState(estore=estore, my_player_id="player1", messages=messages)
 
-    def update(
-        self, state: DungeonState, user_input: Input, delta: float
-    ) -> DungeonState:
+    def update(self, state: DungeonState, user_input: Input, delta: float) -> DungeonState:
         #
         # System chain
         #
@@ -102,14 +100,12 @@ class DungeonModule(Module[DungeonState]):
         slime1.add(Health(max=3, current=3))
         slime1.add(Text(text="@"))
         slime1.add(Loc(x=ROOM_WIDTH - 6, y=ROOM_HEIGHT - 3))
-        # TODO: Drops
 
         slime2 = estore.create_entity()
         slime2.add(Mob(cat="enemy", name="Slime"))
         slime2.add(Health(max=3, current=3))
         slime2.add(Text(text="@"))
         slime2.add(Loc(x=10, y=4))
-        # TODO: Drops
 
         for e in estore.select():
             e.add(Room(room_id="room1"))

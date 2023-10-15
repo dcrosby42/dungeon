@@ -1,5 +1,5 @@
 """Lethal ECS"""
-from typing import Type, TypedDict
+from typing import Type, TypedDict, TypeVar, cast
 
 from pydantic import BaseModel, Field
 
@@ -76,6 +76,9 @@ class EntityDict(TypedDict):
     components: list[dict]
 
 
+C = TypeVar("C", bound=Component)
+
+
 class Entity(BaseModel):
     """An Entity is just an ID and a bunch of Components,
     with some added conveniences."""
@@ -119,7 +122,7 @@ class Entity(BaseModel):
         """Returns True if Entity contains any Components of the given type"""
         # TODO: DO THIS SMARTER
         try:
-            self.get(kind)
+            _ = self[kind]
             return True
         except NoComponentError:
             return False
@@ -137,14 +140,14 @@ class Entity(BaseModel):
         # pylint: disable=not-an-iterable
         return [comp for comp in self.components if isinstance(comp, kind)]
 
-    def get(self, kind: Type[Component]) -> Component:
-        """Return the component of given type.
+    def __getitem__(self, kind: Type[C]) -> C:
+        """Return the Component of given type.
         If Entity has multiple like-kind Components, the first is returned.
         If Entity has no matching Components, NoComponentError is raised.
         """
         hits = self.select(kind)
         if len(hits) > 0:
-            return hits[0]
+            return cast(C, hits[0])
         raise NoComponentError(self, kind)
 
     def to_dict(self) -> EntityDict:
@@ -194,7 +197,7 @@ class EntityStore:
         self.eid_counter += 1
         return f"e{self.eid_counter}"
 
-    def get(self, eid: EntityId) -> Entity:
+    def __getitem__(self, eid: EntityId) -> Entity:
         """Returns an Entity given an eid.
         Raises NoEntityError if not found."""
         ent = self.entities.get(eid)  # pylint: disable=no-member

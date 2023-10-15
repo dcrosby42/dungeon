@@ -13,27 +13,21 @@ class DungeonRenderer:
         self.estore = state.estore
 
         self.player_id = state.my_player_id
-        self.player_ent = next(
-            (
-                e
-                for e in self.state.estore.select(Player)
-                if e.get(Player).player_id == self.player_id
-            )
-        )
+        self.player_ent = next((e for e in self.state.estore.select(Player) if e[Player].player_id == self.player_id))
 
     def draw(self):
         self.draw_ui()
 
-        room_id = self.player_ent.get(Room).room_id
+        room_id = self.player_ent[Room].room_id
 
         with self.output.offset(Pos(1, 1)):  # offset to be within the UI borders
             for ent in sorted(
                 self.state.estore.select(Drawable, Loc, Room),
-                key=lambda e: e.get(Drawable).layer,
+                key=lambda e: e[Drawable].layer,
             ):
                 # for ent in state.estore.select(Drawable, Loc, Room):
-                if ent.get(Room).room_id == room_id:
-                    self.output.print_at(ent.get(Loc).to_pos(), ent.get(Text).text)
+                if ent[Room].room_id == room_id:
+                    self.output.print_at(ent[Loc].to_pos(), ent[Text].text)
 
     def draw_ui(self):
         """render bound box and labels"""
@@ -43,14 +37,12 @@ class DungeonRenderer:
         # messages
         self.output.print_at(
             Pos(0, height + 3),
-            self.output.term.darkgray
-            + "\n".join(list(reversed(self.state.messages))[0:5])
-            + self.output.term.normal,
+            self.output.term.darkgray + "\n".join(list(reversed(self.state.messages))[0:5]) + self.output.term.normal,
         )
 
         # Debug controller state:
         # for e in state.estore.select(Controller):
-        #     con = e.get(Controller)
+        #     con = e[Controller]
         #     output.print_at(
         #         Pos(0, height + 3), output.term.blue + repr(con) + output.term.normal
         #     )

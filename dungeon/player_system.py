@@ -12,41 +12,41 @@ class PlayerSystem(DungeonSystem):
 
     def update(self) -> None:
         for player_e in self.estore.select(Player, Controller, Room, Loc):
-            room = cast(Room, player_e.get(Room))
-            loc = cast(Loc, player_e.get(Loc))
-            con = cast(Controller, player_e.get(Controller))
+            con = player_e[Controller]
+            room = player_e[Room]
+            loc = player_e[Loc]
 
             loc_backup = loc.model_copy()
             self._move(loc, con)
 
             for other_e in self._entities_at_loc(room, loc):
                 if other_e.has_any(Place):
-                    place: Place = other_e.get(Place)
+                    place: Place = other_e[Place]
                     if place.blocked:
                         # undo move, emit message
                         loc.x = loc_backup.x
                         loc.y = loc_backup.y
                         self._message(f"Bonk! {place.name} blocks the way.")
                     elif con.action:
-                        door: Door = other_e.get(Door)
+                        door: Door = other_e[Door]
                         if door:
                             dest_door = next(
-                                (e for e in self.estore.select(Door) if e.get(Door).door_id == door.to_door_id),
+                                (e for e in self.estore.select(Door) if e[Door].door_id == door.to_door_id),
                                 None,
                             )
                             if dest_door:
-                                dest_room = dest_door.get(Room).room_id
+                                dest_room = dest_door[Room].room_id
                                 self._message(f"Opened door {door.door_id}")
-                                player_e.get(Loc).x = dest_door.get(Loc).x
-                                player_e.get(Loc).y = dest_door.get(Loc).y
-                                player_e.get(Room).room_id = dest_room
+                                loc.x = dest_door[Loc].x
+                                loc.y = dest_door[Loc].y
+                                player_e[Room].room_id = dest_room
                                 # self.add_side_effect(
                                 #     RoomSideEffect(to_room_id=dest_room)
                                 # )
 
                 elif other_e.has_any(Item):
                     # TODO: Pickup items
-                    # item_e = other_e.get(Item)
+                    # item_e = other_e[Item]
                     # item_e.remove(Drawable)
                     # item_e.add(Link(eid=player_e))
                     ...
@@ -63,15 +63,15 @@ class PlayerSystem(DungeonSystem):
         hit = True
         damage = 1
         if hit:
-            mob_health = mob_e.get(Health)
+            mob_health = mob_e[Health]
             mob_health.current = max(mob_health.current - damage, 0)
             if mob_health.current <= 0:
                 self.estore.destroy_entity(mob_e)
-                self._message(f"{mob_e.get(Mob).name} defeated!")
+                self._message(f"{mob_e[Mob].name} defeated!")
             else:
-                self._message(f"{mob_e.get(Mob).name} hit for {damage}")
+                self._message(f"{mob_e[Mob].name} hit for {damage}")
         else:
-            self._message(f"{mob_e.get(Mob).name} missed")
+            self._message(f"{mob_e[Mob].name} missed")
 
     def _move(self, loc: Loc, con: Controller) -> None:
         if con.right:
@@ -90,8 +90,8 @@ class PlayerSystem(DungeonSystem):
     def _entities_at_loc(self, room: Room, loc: Loc):
         def hitting(ent: Entity, room: Room, loc: Loc):
             if ent.eid != loc.eid:
-                if ent.get(Room).room_id == room.room_id:
-                    eloc = ent.get(Loc)
+                if ent[Room].room_id == room.room_id:
+                    eloc = ent[Loc]
                     return eloc.x == loc.x and eloc.y == loc.y
             return False
 

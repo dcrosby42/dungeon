@@ -12,11 +12,11 @@ def test_Controller():
     inp = Input(keys=["KEY_RIGHT"])
     system = ControllerSystem(estore=estore, user_input=inp)
     system.update()
-    assert e.get(Controller).left is False
-    assert e.get(Controller).right is True
+    assert e[Controller].left is False
+    assert e[Controller].right is True
 
     inp = Input(keys=["KEY_LEFT"])
     system = ControllerSystem(estore=estore, user_input=inp)
     system.update()
-    assert e.get(Controller).left is True
-    assert e.get(Controller).right is False
+    assert e[Controller].left is True
+    assert e[Controller].right is False

@@ -23,7 +23,7 @@ class ControllerSystem(System):
 
     def update(self) -> None:
         for ent in self.estore.select(Controller):
-            con = cast(Controller, ent.get(Controller))
+            con = ent[Controller]
             if con.name == "controller1":
                 self._apply_input(con)
 

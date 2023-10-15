@@ -128,7 +128,7 @@ def test_Entity_constructor_deep_copies_comps():
     ann_orig.notes["map"]["b"] = 2
 
     # See the entity's copied Annot notes remain unchanged:
-    ann_copy = ent.get(Annot)
+    ann_copy = ent[Annot]
     assert ann_copy.notes == {"hello": "there", "map": {"a": 1}}
     assert ann_copy.eid == "e6"
 
@@ -142,20 +142,20 @@ def test_Entity_select():
 
 def test_Entity_get():
     ent = make_an_entity()
-    assert ent.get(Loc2) == Loc2(eid="e42", x=1, y=2)
-    assert ent.get(Obstr) == Obstr(eid="e42", blocker=True)
+    assert ent[Loc2] == Loc2(eid="e42", x=1, y=2)
+    assert ent[Obstr] == Obstr(eid="e42", blocker=True)
 
 
 def test_Entity_get_raises_on_miss():
     ent = Entity(eid="e1", components=[Loc2(x=1, y=2)])
     with pytest.raises(NoComponentError) as e_info:
-        ent.get(Item)
+        ent[Item]
 
 
 def test_Entity_add():
     ent = Entity(eid="e1")
     ent.add(Loc2(x=10, y=20))
-    loc = ent.get(Loc2)
+    loc = ent[Loc2]
     assert loc == Loc2(eid="e1", x=10, y=20)
 
 
@@ -173,21 +173,21 @@ def test_Entity_add_deep_copy():
     ann_orig.notes["map"]["b"] = 2
 
     # See the entity's copied Annot notes remain unchanged:
-    ann_copy = ent.get(Annot)
+    ann_copy = ent[Annot]
     assert ann_copy.notes == {"hello": "there", "map": {"a": 1}}
     assert ann_copy.eid == "e6"
 
 
 def test_Entity_remove():
     ent = make_an_entity()
-    loc1 = ent.get(Loc2)
+    loc1 = ent[Loc2]
     assert loc1 == Loc2(eid=ent.eid, x=1, y=2)  # (sanity check)
 
     rloc1 = ent.remove(loc1)
     assert rloc1 == Loc2(eid=None, x=1, y=2)
     assert ent.remove(loc1) == None  # already gone
 
-    loc2 = ent.get(Loc2)
+    loc2 = ent[Loc2]
     assert loc2 == Loc2(eid=ent.eid, x=3, y=4)  # (sanity check)
 
     rloc2 = ent.remove(loc2)
@@ -196,7 +196,7 @@ def test_Entity_remove():
 
     # See no more Locs
     with pytest.raises(NoComponentError) as e_info:
-        ent.get(Loc2)
+        ent[Loc2]
 
 
 def test_Entity_contains():
@@ -290,27 +290,27 @@ def make_an_entity_store():
 
 def test_EntityStore_get():
     estore = make_an_entity_store()
-    ent = estore.get("e2")
+    ent = estore["e2"]
     assert ent.eid == "e2"
-    assert ent.get(Item) == Item(eid="e2", name="Money")
+    assert ent[Item] == Item(eid="e2", name="Money")
 
 
 def test_EntityStore_destroy_entity():
     estore = make_an_entity_store()
     assert len(estore.entities) == 3
     # See e2:
-    ent = estore.get("e2")
+    ent = estore["e2"]
     estore.destroy_entity(ent)
     # Now... it should be gone:
     with pytest.raises(NoEntityError) as e_info:
-        estore.get("e2")
+        estore["e2"]
     assert len(estore.entities) == 2
 
 
 def test_EntityStore_get_NoEntityError():
     estore = make_an_entity_store()
     with pytest.raises(NoEntityError) as e_info:
-        estore.get("nope")
+        estore["nope"]
 
 
 def test_EntityStore_select_when_empty():
@@ -323,16 +323,16 @@ def test_EntityStore_select_based_on_single_kind():
     estore = make_an_entity_store()
     ents = estore.select(Item)
     assert len(ents) == 2
-    assert ents[0].get(Item).name == "Money"
-    assert ents[1].get(Item).name == "Fountain"
+    assert ents[0][Item].name == "Money"
+    assert ents[1][Item].name == "Fountain"
 
 
 def test_EntityStore_select_based_on_multiple_kinds():
     estore = make_an_entity_store()
     ents = estore.select(Obstr, Item)
     assert len(ents) == 1
-    assert ents[0].get(Item).name == "Fountain"
-    assert ents[0].get(Obstr).blocker == True
+    assert ents[0][Item].name == "Fountain"
+    assert ents[0][Obstr].blocker == True
 
 
 def test_EntityStore_select__all():
@@ -340,9 +340,9 @@ def test_EntityStore_select__all():
     estore = make_an_entity_store()
     ents = estore.select()
     assert len(ents) == 3
-    assert ents[0].get(Loc2).x == 1
-    assert ents[1].get(Item).name == "Money"
-    assert ents[2].get(Obstr).blocker == True
+    assert ents[0][Loc2].x == 1
+    assert ents[1][Item].name == "Money"
+    assert ents[2][Obstr].blocker == True
 
 
 # def test_EntityStore__serialize():

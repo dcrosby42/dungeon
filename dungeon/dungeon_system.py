@@ -10,5 +10,5 @@ class MsgSideEffect(SideEffect):
 class DungeonSystem(System):
     """Extended ECS system adds helpers for our particular game setup"""
 
-    def _message(self, text) -> MsgSideEffect:
+    def _message(self, text) -> SideEffect:
         return self.add_side_effect(MsgSideEffect(text=text))

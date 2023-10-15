@@ -1,14 +1,20 @@
 {
   "editor.detectIndentation": false,
   "[python]": {
-    "editor.tabSize": 4
+    "editor.tabSize": 4,
+    "editor.defaultFormatter": "ms-python.black-formatter"
   },
-  "python.linting.enabled": true,
-  "python.linting.pylintArgs": [
+  "pylint.args": [
     "--load-plugins",
     "pylint_pydantic"
   ],
+  "python.linting.enabled": true,
+  // "python.linting.pylintArgs": [
+  //   "--load-plugins",
+  //   "pylint_pydantic"
+  // ],
   "files.exclude": {
     "**/__pycache__": true
-  }
+  },
+  "python.formatting.provider": "none"
 }

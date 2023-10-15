@@ -8,7 +8,7 @@ prefix=""
 [[ -z "$VIRTUAL_ENV" ]] && prefix="poetry run "
 
 set -e
-if [ -z "SKIP_MYPY" ]; then
+if [ -z "$SKIP_MYPY" ]; then
   ${prefix}mypy dungeon lethal 
 fi
 ${prefix}pytest tests

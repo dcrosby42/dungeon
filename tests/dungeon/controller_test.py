@@ -1,6 +1,7 @@
+# pylint: disable-all
+
 from lethal import Input, EntityStore
 from dungeon.controller_system import Controller, ControllerSystem
-import pdb
 
 
 def test_Controller():

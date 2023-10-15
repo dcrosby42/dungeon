@@ -16,14 +16,14 @@ class NoComponentError(EcsError):
     """Raised when you try to access a component type and Entity has none of."""
 
     def __init__(self, ent: "Entity", comp_kind: Type["Component"]):
-        super().__init__(f"Entity {ent.eid} has no {comp_kind.__name__} component(s)")
+        super(EcsError, self).__init__(f"Entity {ent.eid} has no {comp_kind.__name__} component(s)")
 
 
 class NoEntityError(EcsError):
     """Raised when you try to get an Entity by eid that doesn't exist in the EntityStore"""
 
     def __init__(self, eid: "EntityId"):
-        super().__init__(f"EntityStore has no Entity with eid {eid}")
+        super(NoEntityError, self).__init__(f"EntityStore has no Entity with eid {eid}")
 
 
 class Component(BaseModel):
@@ -81,15 +81,13 @@ class Entity(BaseModel):
     with some added conveniences."""
 
     eid: EntityId
-    components: list[Component] = Field(default=[])
+    components: list[Component]
 
     def __init__(self, **data):
         # Any components passed to the constructor are:
         #   - deep-copied
         #   - given the eid of the Entity
-        data["components"] = [
-            comp.clone(data["eid"]) for comp in data.get("components", [])
-        ]
+        data["components"] = [comp.clone(data["eid"]) for comp in data.get("components", [])]
         super().__init__(**data)
 
     def add(self, comp: Component):
@@ -170,11 +168,15 @@ class Entity(BaseModel):
 # Entity.remove_all(kind) ?
 
 
-class EntityStore(BaseModel):
+class EntityStore:
     """EntityStore creates, holds and finds Entities"""
 
-    entities: dict[EntityId, Entity] = Field(default={})
-    eid_counter: int = Field(default=0)
+    entities: dict[EntityId, Entity]
+    eid_counter: int
+
+    def __init__(self):
+        self.entities = {}
+        self.eid_counter = 0
 
     def create_entity(self) -> Entity:
         """Create a new empty Entity with the next eid"""
@@ -202,23 +204,24 @@ class EntityStore(BaseModel):
 
     def select(self, *kinds: Type[Component]) -> list[Entity]:
         """Return a list of all Entities containing Components of all the given kinds"""
-        return [ent for _, ent in self.entities.items() if ent.has_all(kinds)]
+        return [ent for _, ent in self.entities.items() if ent.has_all(list(kinds))]
 
 
 class SideEffect(BaseModel):
     """A thing systems return to change the world outside"""
 
 
-class System(BaseModel):
+class System:
     """ECS System base class"""
 
     estore: EntityStore
     user_input: Input
-    side_effects: list[SideEffect] = Field(default=[])
+    side_effects: list[SideEffect]
 
-    # def __init__(self, estore: EntityStore, user_input: Input):
-    #     self.estore = estore
-    #     self.user_input = user_input
+    def __init__(self, estore: EntityStore, user_input: Input):
+        self.estore = estore
+        self.user_input = user_input
+        self.side_effects = []
 
     def update(self) -> None:
         """Default behavior: No-op"""

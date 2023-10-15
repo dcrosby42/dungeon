@@ -1,5 +1,8 @@
+from typing import cast
+
+from lethal import Entity, Loc
+
 from .controller_system import Controller
-from lethal import Loc, Entity
 from .dungeon_comps import *
 from .dungeon_system import DungeonSystem
 
@@ -9,9 +12,9 @@ class PlayerSystem(DungeonSystem):
 
     def update(self) -> None:
         for player_e in self.estore.select(Player, Controller, Room, Loc):
-            room = player_e.get(Room)
-            loc = player_e.get(Loc)
-            con = player_e.get(Controller)
+            room = cast(Room, player_e.get(Room))
+            loc = cast(Loc, player_e.get(Loc))
+            con = cast(Controller, player_e.get(Controller))
 
             loc_backup = loc.model_copy()
             self._move(loc, con)
@@ -28,11 +31,7 @@ class PlayerSystem(DungeonSystem):
                         door: Door = other_e.get(Door)
                         if door:
                             dest_door = next(
-                                (
-                                    e
-                                    for e in self.estore.select(Door)
-                                    if e.get(Door).door_id == door.to_door_id
-                                ),
+                                (e for e in self.estore.select(Door) if e.get(Door).door_id == door.to_door_id),
                                 None,
                             )
                             if dest_door:

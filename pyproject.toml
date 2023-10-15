@@ -14,7 +14,33 @@ pydantic = "^2.4.2"
 pylint = "^2.17.7"
 pylint-pydantic = "^0.2.4"
 
+[tool.pylint."MESSAGES CONTROL"]
+disable = ["missing-module-docstring", "too-few-public-methods"]
+extension-pkg-whitelist = "pydantic"
+
+[tool.pylint.REPORTS]
+output-format = "parseable"
+
+[tool.pylint.FORMAT]
+max-line-length = 120
+
+[tool.pylint.DESIGN]
+max-args = 10
+max-attributes = 10
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+python_version = "3.11"
+disable_error_code = ["attr-defined"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["prometheus_client", "uvicorn", "celery.*", "celery_batches"]
+ignore_missing_imports = true

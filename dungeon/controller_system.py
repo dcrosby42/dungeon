@@ -1,6 +1,8 @@
-from lethal import System, Component, SideEffect
+from typing import cast
+
 from pydantic import Field
-import pdb
+
+from lethal import Component, System
 
 
 class Controller(Component):
@@ -21,10 +23,9 @@ class ControllerSystem(System):
 
     def update(self) -> None:
         for ent in self.estore.select(Controller):
-            con = ent.get(Controller)
+            con = cast(Controller, ent.get(Controller))
             if con.name == "controller1":
                 self._apply_input(con)
-        return []
 
     def _apply_input(self, con: Controller):
         # map keys to controller attr names
@@ -43,8 +44,8 @@ class ControllerSystem(System):
 
         # Update controller state::
         for key in self.user_input.keys:
-            attr = key_map.get(key)
+            attr2 = key_map.get(key)
             print(f"Checking {key}")
-            if attr:
+            if attr2:
                 print("setting")
-                setattr(con, attr, True)
+                setattr(con, attr2, True)

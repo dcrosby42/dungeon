@@ -57,7 +57,7 @@ def test_Component():
 
 
 def test_Component_clone():
-    nestedObj: dict[str, Any] = {
+    nestedObj = {
         "topic": "game dev",
         "entries": ["lib congress", "local lib"],
     }
@@ -254,7 +254,7 @@ def test_EntityStore():
     assert estore._next_eid() == "e12"
 
 
-def test_EntityStore_create_entity():
+def test_EntityStore__next_eid():
     estore = EntityStore()
     assert estore._next_eid() == "e1"
     assert estore._next_eid() == "e2"

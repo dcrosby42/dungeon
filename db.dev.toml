@@ -1,0 +1,7 @@
+[database]
+host = "localhost"
+port = 5450
+username = "dungeonuser"
+password = "dungeonpass"
+database = "dungeon_db"
+echo = false

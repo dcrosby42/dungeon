@@ -1,13 +1,16 @@
+import os
+
+import ptpython.repl
 import tomli
 from sqlalchemy import URL, Engine, create_engine, select
 from sqlalchemy.orm import Session
 
-from dungeon.db.models import MetaData, Dungeon, Room
+from dungeon.db.models import Dungeon, MetaData, Room
 
 
 def load_db_conf(filename: str, section: str = "database"):
     """Load database conf from toml file"""
-    with open("db.dev.toml", "rb") as f:
+    with open(filename, "rb") as f:
         d = tomli.load(f)
         return d[section]
 
@@ -57,9 +60,13 @@ class Builder:
     def __init__(self, session: Session):
         self.session = session
 
-    def build_dungeon1(self):
-        """d1"""
-        d = Dungeon(shortname="dun1", name="First Dungeon")
+    def build_dungeon(self, shortname):
+        """generate a dungeon"""
+        if self.session.query(Dungeon.id).where(Dungeon.shortname == shortname).count() > 0:
+            print(f"Builder: Dungeon '{shortname}' already exists; skipping.")
+            return
+        # self.session.
+        d = Dungeon(shortname=shortname, name="First Dungeon")
         d.rooms = [
             Room(name="room1"),
             Room(name="room2"),
@@ -67,37 +74,25 @@ class Builder:
         self.session.add(d)
         self.session.flush()
 
-    def prompt(self):
-        """debugging"""
-        session = self.session
-        import pdb
+    def delete_dungeon(self, shortname):
+        """delete a dungeon"""
+        for d in self.session.query(Dungeon).where(Dungeon.shortname == shortname).all():
+            print(f"Builder: deleting dungeon: f{d}")
+            self.session.delete(d)
 
-        pdb.set_trace()
+    def console(self):
+        """Start a REPL with an active db session"""
+        print("""Welcome to DB console""")
+        session = self.session  # pylint: disable=possibly-unused-variable
+        S = session
+        home = os.getenv("HOME")
+        ptpython.repl.embed(locals=locals(), globals=globals(), history_filename=f"{home}/.ptpython_history")
 
     def dump_stuff(self):
+        """print the stuff"""
         print("Dungeons")
         for d in self.session.scalars(select(Dungeon)):
             print(d)
         print("Rooms")
         for r in self.session.scalars(select(Room)):
             print(r)
-
-
-# def list_users(engine):
-#     with Session(engine) as session:
-#         for user in session.scalars(select(User)):
-#             print(user)
-
-
-# def list_users2(engine):
-#     with Session(engine) as session:
-#         for name, fullname in session.execute(select(User.name, User.fullname)):
-#             print(f"User {name} is named {fullname}")
-
-
-# def add_users(engine):
-#     session = Session(engine)
-#     session.add(User(name="lemmy", fullname="Lemmy Kilmister"))
-#     session.add(User(name="ozzy", fullname="Ozzy Osbourne"))
-#     session.flush()
-#     session.commit()

@@ -16,6 +16,8 @@ pylint-pydantic = "^0.2.4"
 sqlalchemy = "^2.0.22"
 psycopg2-binary = "^2.9.9"
 tomli = "^2.0.1"
+invoke = "^2.2.0"
+ptpython = "^3.0.23"
 
 [tool.pylint."MESSAGES CONTROL"]
 disable = ["missing-module-docstring", "too-few-public-methods"]

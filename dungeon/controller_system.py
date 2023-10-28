@@ -1,14 +1,15 @@
-from typing import cast
-
+from dataclasses import fields
 from pydantic import Field
+from pydantic.dataclasses import dataclass
+from dungeon.dungeon_comps import Player
+from dungeon.dungeon_system import DungeonSystem, ControllerEvent
 
-from lethal import Component, System
+from lethal import Component
 
 
 class Controller(Component):
     """Controller state"""
 
-    name: str
     up: bool | None = Field(default=False)
     down: bool | None = Field(default=False)
     left: bool | None = Field(default=False)
@@ -17,35 +18,29 @@ class Controller(Component):
     drop: bool | None = Field(default=False)
     action: bool | None = Field(default=False)
 
+    def clear(self) -> None:
+        """Set all attrs to False"""
+        self.up = False
+        self.down = False
+        self.left = False
+        self.right = False
+        self.take = False
+        self.drop = False
+        self.action = False
 
-class ControllerSystem(System):
-    """Updates Controller components based on user input"""
+
+class ControllerSystem(DungeonSystem):
+    """Applies incoming ControllerEvents to Controller comps based on player id"""
 
     def update(self) -> None:
-        for ent in self.estore.select(Controller):
+        for e in self.estore.select(Controller):
+            e[Controller].clear()
+            print(f"Controller: {e[Controller]}")
+        for ent in self.estore.select(Player, Controller):
             con = ent[Controller]
-            if con.name == "controller1":
-                self._apply_input(con)
-
-    def _apply_input(self, con: Controller):
-        # map keys to controller attr names
-        key_map = {
-            "KEY_RIGHT": "right",
-            "KEY_LEFT": "left",
-            "KEY_UP": "up",
-            "KEY_DOWN": "down",
-            " ": "action",
-            "t": "take",
-            "T": "drop",
-        }
-        # Clear controller state:
-        for _, attr in key_map.items():
-            setattr(con, attr, False)
-
-        # Update controller state::
-        for key in self.user_input.keys:
-            attr2 = key_map.get(key)
-            print(f"Checking {key}")
-            if attr2:
-                print("setting")
-                setattr(con, attr2, True)
+            # con.clear()
+            this_player_id = ent[Player].player_id
+            for event in self.system_input.events:
+                match event:
+                    case ControllerEvent(player_id, action_name) if player_id == this_player_id:
+                        setattr(con, action_name, True)

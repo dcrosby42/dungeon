@@ -1,9 +1,7 @@
 """Lethal ECS"""
-from typing import Type, TypedDict, TypeVar, cast
+from typing import Type, TypedDict, TypeVar, cast, Generic
 
 from pydantic import BaseModel, Field
-
-from .input import Input
 
 EntityId = str
 
@@ -214,16 +212,19 @@ class SideEffect(BaseModel):
     """A thing systems return to change the world outside"""
 
 
-class System:
+I = TypeVar("I")
+
+
+class System(Generic[I]):
     """ECS System base class"""
 
     estore: EntityStore
-    user_input: Input
+    system_input: I
     side_effects: list[SideEffect]
 
-    def __init__(self, estore: EntityStore, user_input: Input):
+    def __init__(self, estore: EntityStore, system_input: I):
         self.estore = estore
-        self.user_input = user_input
+        self.system_input = system_input
         self.side_effects = []
 
     def update(self) -> None:

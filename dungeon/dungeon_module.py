@@ -3,6 +3,8 @@
 
 
 from lethal import EntityStore, Input, Loc, Module, Output
+from lethal.ecs import ControllerEvent, SystemInput
+from pydantic.dataclasses import dataclass
 
 from .controller_system import Controller, ControllerSystem
 from .dungeon_comps import *
@@ -11,6 +13,17 @@ from .dungeon_renderer import DungeonRenderer
 from .dungeon_state import DungeonState
 from .dungeon_system import MsgSideEffect
 from .player_system import PlayerSystem
+
+
+KEY_MAP = {
+    "KEY_RIGHT": "right",
+    "KEY_LEFT": "left",
+    "KEY_UP": "up",
+    "KEY_DOWN": "down",
+    " ": "action",
+    "t": "take",
+    "T": "drop",
+}
 
 
 class DungeonModule(Module[DungeonState]):
@@ -27,6 +40,18 @@ class DungeonModule(Module[DungeonState]):
         return DungeonState(estore=estore, my_player_id="player1", messages=messages)
 
     def update(self, state: DungeonState, user_input: Input, delta: float) -> DungeonState:
+        player_id = state.my_player_id
+
+        #
+        # Map player input actions
+        #
+        system_input = SystemInput()
+        system_input.events = []
+        for key in user_input.keys:
+            action_name = KEY_MAP.get(key)
+            if action_name:
+                system_input.events.append(ControllerEvent(player_id, action_name))
+
         #
         # System chain
         #
@@ -36,7 +61,7 @@ class DungeonModule(Module[DungeonState]):
             PlayerSystem,
         ]
         for new_system in systems:
-            s = new_system(estore=state.estore, user_input=user_input)
+            s = new_system(estore=state.estore, system_input=system_input)
             s.update()
             side_effects.extend(s.side_effects)
 

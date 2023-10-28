@@ -23,7 +23,7 @@ class Obstr(Component):
     blocker: bool
 
 
-class Item(Component):
+class TItem(Component):
     name: str
 
 
@@ -91,8 +91,7 @@ def test_Component__find_class():
     assert Component.find_class("Component") == Component
     assert Component.find_class("Loc2") == Loc2
     assert Component.find_class("Loc3") == Loc3
-    assert Component.find_class("Item") == Item
-
+    assert Component.find_class("TItem") == TItem
     assert Component.find_class("loc") is None
 
 
@@ -137,7 +136,7 @@ def test_Entity_select():
     ent = make_an_entity()
     assert ent.select(Loc2) == [Loc2(eid="e42", x=1, y=2), Loc2(eid="e42", x=3, y=4)]
     assert ent.select(Obstr) == [Obstr(eid="e42", blocker=True)]
-    assert ent.select(Item) == []
+    assert ent.select(TItem) == []
 
 
 def test_Entity_get():
@@ -149,7 +148,7 @@ def test_Entity_get():
 def test_Entity_get_raises_on_miss():
     ent = Entity(eid="e1", components=[Loc2(x=1, y=2)])
     with pytest.raises(NoComponentError) as e_info:
-        ent[Item]
+        ent[TItem]
 
 
 def test_Entity_add():
@@ -209,7 +208,7 @@ def test_Entity_has_any():
     ent = make_an_entity()
     assert ent.has_any(Loc2) == True
     assert ent.has_any(Obstr) == True
-    assert ent.has_any(Item) == False
+    assert ent.has_any(TItem) == False
 
 
 def test_Entity_to_dict__from_dict():
@@ -278,12 +277,12 @@ def make_an_entity_store():
 
     e2 = estore.create_entity()
     e2.add(Loc2(x=2, y=2))
-    e2.add(Item(name="Money"))
+    e2.add(TItem(name="Money"))
 
     e3 = estore.create_entity()
     e3.add(Loc2(x=3, y=3))
     e3.add(Obstr(blocker=True))
-    e3.add(Item(name="Fountain"))
+    e3.add(TItem(name="Fountain"))
 
     return estore
 
@@ -292,7 +291,7 @@ def test_EntityStore_get():
     estore = make_an_entity_store()
     ent = estore["e2"]
     assert ent.eid == "e2"
-    assert ent[Item] == Item(eid="e2", name="Money")
+    assert ent[TItem] == TItem(eid="e2", name="Money")
 
 
 def test_EntityStore_destroy_entity():
@@ -321,17 +320,17 @@ def test_EntityStore_select_when_empty():
 
 def test_EntityStore_select_based_on_single_kind():
     estore = make_an_entity_store()
-    ents = estore.select(Item)
+    ents = estore.select(TItem)
     assert len(ents) == 2
-    assert ents[0][Item].name == "Money"
-    assert ents[1][Item].name == "Fountain"
+    assert ents[0][TItem].name == "Money"
+    assert ents[1][TItem].name == "Fountain"
 
 
 def test_EntityStore_select_based_on_multiple_kinds():
     estore = make_an_entity_store()
-    ents = estore.select(Obstr, Item)
+    ents = estore.select(Obstr, TItem)
     assert len(ents) == 1
-    assert ents[0][Item].name == "Fountain"
+    assert ents[0][TItem].name == "Fountain"
     assert ents[0][Obstr].blocker == True
 
 
@@ -341,7 +340,7 @@ def test_EntityStore_select__all():
     ents = estore.select()
     assert len(ents) == 3
     assert ents[0][Loc2].x == 1
-    assert ents[1][Item].name == "Money"
+    assert ents[1][TItem].name == "Money"
     assert ents[2][Obstr].blocker == True
 
 

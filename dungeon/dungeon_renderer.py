@@ -10,24 +10,27 @@ class DungeonRenderer:
     def __init__(self, state: DungeonState, output: Output):
         self.state = state
         self.output = output
-        self.estore = state.estore
+        # self.estore = state.estore
 
-        self.player_id = state.my_player_id
-        self.player_ent = next((e for e in self.state.estore.select(Player) if e[Player].player_id == self.player_id))
+    #
+    # self.player_id = state.my_player_id
+    # self.player_ent = next((e for e in self.state.estore.select(Player) if e[Player].player_id == self.player_id))
 
     def draw(self):
         self.draw_ui()
 
-        room_id = self.player_ent[Room].room_id
+        estore = self.state.estore
+
+        current_room = [
+            room for player, room in estore.by_types2(Player, Room) if player.player_id == self.state.my_player_id
+        ][0]
 
         with self.output.offset(Pos(1, 1)):  # offset to be within the UI borders
-            for ent in sorted(
-                self.state.estore.select(Drawable, Loc, Room),
-                key=lambda e: e[Drawable].layer,
+            for _drawable, text, room, loc in sorted(
+                estore.by_types4(Drawable, Text, Room, Loc), key=lambda tup: tup[0].layer
             ):
-                # for ent in state.estore.select(Drawable, Loc, Room):
-                if ent[Room].room_id == room_id:
-                    self.output.print_at(ent[Loc].to_pos(), ent[Text].text)
+                if room.room_id == current_room.room_id:
+                    self.output.print_at(loc.to_pos(), text.text)
 
     def draw_ui(self):
         """render bound box and labels"""

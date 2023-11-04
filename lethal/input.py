@@ -7,6 +7,7 @@ from dataclasses import dataclass
 class Input:
     """User input passed to Module.update"""
 
+    dt: float
     keys: list[str]
 
     @classmethod

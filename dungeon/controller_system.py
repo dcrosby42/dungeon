@@ -1,10 +1,10 @@
-from dataclasses import fields
 from pydantic import Field
-from pydantic.dataclasses import dataclass
 from dungeon.dungeon_comps import Player
-from dungeon.dungeon_system import DungeonSystem, ControllerEvent
+from dungeon.dungeon_system import DungeonInput, ControllerEvent
 
 from lethal import Component
+from lethal.ecs import SideEffect
+from lethal.ecs2 import Estore
 
 
 class Controller(Component):
@@ -29,18 +29,17 @@ class Controller(Component):
         self.action = False
 
 
-class ControllerSystem(DungeonSystem):
-    """Applies incoming ControllerEvents to Controller comps based on player id"""
+def controller_system(estore: Estore, inp: DungeonInput) -> list[SideEffect]:
+    """
+    Applies incoming ControllerEvents to Controller comps based on player id
+    """
+    for controller in estore.by_type(Controller):
+        controller.clear()
 
-    def update(self) -> None:
-        for e in self.estore.select(Controller):
-            e[Controller].clear()
-            print(f"Controller: {e[Controller]}")
-        for ent in self.estore.select(Player, Controller):
-            con = ent[Controller]
-            # con.clear()
-            this_player_id = ent[Player].player_id
-            for event in self.system_input.events:
-                match event:
-                    case ControllerEvent(player_id, action_name) if player_id == this_player_id:
-                        setattr(con, action_name, True)
+    for player, controller in estore.by_types2(Player, Controller):
+        this_player_id = player.player_id
+        for event in inp.events:
+            match event:
+                case ControllerEvent(player_id, action_name) if player_id == this_player_id:
+                    setattr(controller, action_name, True)
+    return []

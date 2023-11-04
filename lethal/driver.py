@@ -3,12 +3,13 @@
 from typing import Generic, TypeVar
 
 from blessed import Terminal
+from lethal.module import Module
 
 from .input import Input
 from .output import Output
 
 
-M = TypeVar("M")
+M = TypeVar("M", bound=Module)
 S = TypeVar("S")
 
 
@@ -43,7 +44,7 @@ class Driver(Generic[M, S]):
                     break
 
                 # Update State
-                self.state = self.module.update(self.state, Input([key_str]), 0)
+                self.state = self.module.update(self.state, Input(0,[key_str]))
 
     def _next_key_str(self) -> str:
         key = self.term.inkey()

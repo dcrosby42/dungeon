@@ -2,17 +2,18 @@
 # from typing import Any, Optional
 
 
-from lethal import EntityStore, Input, Loc, Module, Output
-from lethal.ecs import ControllerEvent, SystemInput
-from pydantic.dataclasses import dataclass
+from typing import Callable
+from lethal import Input, Loc, Module, Output
+from lethal.ecs import SideEffect
+from lethal.ecs2 import Estore
 
-from .controller_system import Controller, ControllerSystem
+from .controller_system import Controller, controller_system
 from .dungeon_comps import *
 from .dungeon_comps import ROOM_HEIGHT, ROOM_WIDTH
 from .dungeon_renderer import DungeonRenderer
 from .dungeon_state import DungeonState
-from .dungeon_system import MsgSideEffect
-from .player_system import PlayerSystem
+from .dungeon_system import ControllerEvent, DungeonInput, MsgSideEffect
+from .player_system import player_system
 
 
 KEY_MAP = {
@@ -25,12 +26,19 @@ KEY_MAP = {
     "T": "drop",
 }
 
+DungeonSys = Callable[[Estore, DungeonInput], list[SideEffect]]
+
+DUNGEON_SYSTEMS: list[DungeonSys] = [
+    controller_system,
+    player_system,
+]
+
 
 class DungeonModule(Module[DungeonState]):
     """The Dungeon"""
 
     def create(self) -> DungeonState:
-        estore = self._init_entity_store()
+        estore = self._init_estore()
 
         messages = [
             "Move with arrow keys.  t=take, T=drop",
@@ -39,115 +47,132 @@ class DungeonModule(Module[DungeonState]):
 
         return DungeonState(estore=estore, my_player_id="player1", messages=messages)
 
-    def update(self, state: DungeonState, user_input: Input, delta: float) -> DungeonState:
+    def update(self, state: DungeonState, user_input: Input) -> DungeonState:
         player_id = state.my_player_id
 
         #
         # Map player input actions
         #
-        system_input = SystemInput()
-        system_input.events = []
+        dungeon_input = DungeonInput(events=[])
+        dungeon_input.events = []
         for key in user_input.keys:
             action_name = KEY_MAP.get(key)
             if action_name:
-                system_input.events.append(ControllerEvent(player_id, action_name))
+                dungeon_input.events.append(ControllerEvent(player_id, action_name))
 
         #
         # System chain
         #
-        side_effects = []
-        systems = [
-            ControllerSystem,
-            PlayerSystem,
-        ]
-        for new_system in systems:
-            s = new_system(estore=state.estore, system_input=system_input)
-            s.update()
-            side_effects.extend(s.side_effects)
+        side_effects: list[SideEffect] = []
+        for system in DUNGEON_SYSTEMS:
+            sfx = system(state.estore, dungeon_input)
+            side_effects.extend(sfx)
 
         #
         # Side effects
         #
         for se in side_effects:
-            if isinstance(se, MsgSideEffect):
-                state.messages.append(se.text)
+            match se:
+                case MsgSideEffect(text=msg):
+                    state.messages.append(msg)
 
         return state
 
     def draw(self, state: DungeonState, output: Output):
         DungeonRenderer(state, output).draw()
 
-    def _init_entity_store(self):
-        estore = EntityStore()
+    def _init_estore(self):
+        estore = Estore()
 
-        player = estore.create_entity()
-        player.add(Player(player_id="player1"))
-        player.add(Health(max=10, current=10))
-        player.add(Controller(name="controller1"))
-        player.add(Text(text="O"))
-        player.add(Loc(x=70, y=10))
-        player.add(Drawable(layer=10))
-        player.add(Room(room_id="room1"))
+        estore.create_entity(
+            Player(player_id="player1"),
+            Health(max=10, current=10),
+            Controller(name="controller1"),
+            Text(text="O"),
+            Loc(x=70, y=10),
+            Drawable(layer=10),
+            Room(room_id="room1"),
+        )
 
         self._add_room1(estore)
         self._add_room2(estore)
+
         return estore
 
     def _add_room1(self, estore):
-        gold1 = estore.create_entity()
-        gold1.add(Item(cat="gold", name="Gold Piece", value="10"))
-        gold1.add(Loc(x=12, y=4))
-        gold1.add(Text(text="$"))
+        estore.create_entity(
+            Item(cat="gold", name="Gold Piece", value="10"),
+            Text(text="$"),
+            Room(room_id="room1"),
+            Loc(x=12, y=4),
+            Drawable(),
+        )
 
-        gold2 = estore.create_entity()
-        gold2.add(Item(cat="gold", name="Dubloon", value="10"))
-        gold2.add(Loc(x=30, y=8))
-        gold2.add(Text(text="$"))
+        estore.create_entity(
+            Item(cat="gold", name="Dubloon", value="10"),
+            Room(room_id="room1"),
+            Loc(x=30, y=8),
+            Text(text="$"),
+            Drawable(),
+        )
 
-        sword = estore.create_entity()
-        sword.add(Item(cat="sword", name="Sword", value="30"))
-        sword.add(Loc(x=32, y=3))
-        sword.add(Text(text="/"))
+        estore.create_entity(
+            Item(cat="sword", name="Sword", value="30"),
+            Room(room_id="room1"),
+            Loc(x=32, y=3),
+            Text(text="/"),
+            Drawable(),
+        )
 
-        fountain = estore.create_entity()
-        fountain.add(Place(name="Fountain", blocked=True))
-        fountain.add(Loc(x=10, y=0))
-        fountain.add(Text(text="*"))
+        estore.create_entity(
+            Place(name="Fountain", blocked=True),
+            Room(room_id="room1"),
+            Loc(x=10, y=0),
+            Text(text="*"),
+            Drawable(),
+        )
 
-        door = estore.create_entity()
-        door.add(Door(door_id="door1", to_door_id="door2"))
-        door.add(Place(name="Door"))
-        door.add(Loc(x=ROOM_WIDTH - 5, y=ROOM_HEIGHT - 1))
-        door.add(Text(text="#"))
+        estore.create_entity(
+            Door(door_id="door1", to_door_id="door2"),
+            Place(name="Door"),
+            Room(room_id="room1"),
+            Loc(x=ROOM_WIDTH - 5, y=ROOM_HEIGHT - 1),
+            Text(text="#"),
+            Drawable(),
+        )
 
-        slime1 = estore.create_entity()
-        slime1.add(Mob(cat="enemy", name="Slime"))
-        slime1.add(Health(max=3, current=3))
-        slime1.add(Text(text="@"))
-        slime1.add(Loc(x=ROOM_WIDTH - 6, y=ROOM_HEIGHT - 3))
+        estore.create_entity(
+            Mob(cat="enemy", name="Slime"),
+            Health(max=3, current=3),
+            Text(text="@"),
+            Room(room_id="room1"),
+            Loc(x=ROOM_WIDTH - 6, y=ROOM_HEIGHT - 3),
+            Drawable(),
+        )
 
-        slime2 = estore.create_entity()
-        slime2.add(Mob(cat="enemy", name="Slime"))
-        slime2.add(Health(max=3, current=3))
-        slime2.add(Text(text="@"))
-        slime2.add(Loc(x=10, y=4))
-
-        for e in estore.select():
-            e.add(Room(room_id="room1"))
-            e.add(Drawable())
+        estore.create_entity(
+            Mob(cat="enemy", name="Slime"),
+            Health(max=3, current=3),
+            Text(text="@"),
+            Room(room_id="room1"),
+            Loc(x=10, y=4),
+            Drawable(),
+        )
 
     def _add_room2(self, estore):
-        gold1 = estore.create_entity()
-        gold1.add(Item(cat="gold", name="Gold Piece", value="10"))
-        gold1.add(Loc(x=20, y=10))
-        gold1.add(Text(text="$"))
-        gold1.add(Room(room_id="room2"))
-        gold1.add(Drawable())
+        estore.create_entity(
+            Item(cat="gold", name="Gold Piece", value="10"),
+            Loc(x=20, y=10),
+            Text(text="$"),
+            Room(room_id="room2"),
+            Drawable(),
+        )
 
-        door = estore.create_entity()
-        door.add(Place(name="Door"))
-        door.add(Door(door_id="door2", to_door_id="door1"))
-        door.add(Room(room_id="room2"))
-        door.add(Loc(x=4, y=0))
-        door.add(Text(text="#"))
-        door.add(Drawable())
+        estore.create_entity(
+            Place(name="Door"),
+            Door(door_id="door2", to_door_id="door1"),
+            Room(room_id="room2"),
+            Loc(x=4, y=0),
+            Text(text="#"),
+            Drawable(),
+        )

@@ -12,9 +12,7 @@ class MyMod(module.Module[MyTestState]):
     def create(self) -> MyTestState:
         return MyTestState("")
 
-    def update(
-        self, state: MyTestState, user_input: module.Input, delta: float
-    ) -> MyTestState:
+    def update(self, state: MyTestState, user_input: module.Input) -> MyTestState:
         state.captured_key = user_input.keys[-1]
         return state
 
@@ -31,6 +29,6 @@ def test_MyMod_update():
     mod = MyMod()
     st = mod.create()
 
-    inp = module.Input(["KEY_RIGHT"])
-    st = mod.update(st, inp, 0)
+    inp = module.Input(0, ["KEY_RIGHT"])
+    st = mod.update(st, inp)
     assert st.captured_key == "KEY_RIGHT"

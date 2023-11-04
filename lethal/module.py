@@ -16,7 +16,7 @@ class Module(Generic[T]):
         """Create a new instance of this module's state"""
         raise NotImplementedError("Modules need to implement create()")
 
-    def update(self, state: T, user_input: Input, delta: float) -> T:
+    def update(self, state: T, user_input: Input) -> T:
         """Computes the next state based in inputs"""
         return state
 

@@ -1,9 +1,11 @@
 # pylint: disable-all
 
-from dungeon.controller_system import Controller, ControllerSystem
+from dungeon.controller_system import Controller, controller_system
 from dungeon.dungeon_comps import Player
 from dungeon.dungeon_system import ControllerEvent, DungeonInput
-from lethal import EntityStore, Input
+
+# from lethal import Input
+from lethal.ecs2 import Estore
 
 
 def test_Controller():
@@ -21,14 +23,19 @@ def test_Controller():
 
 
 def test_ControllerSystem():
-    estore = EntityStore()
-    p1_ent = estore.create_entity()
-    p1_ent.add(Player(player_id="player1"))
-    p1_ent.add(Controller())
+    estore = Estore()
 
-    p2_ent = estore.create_entity()
-    p2_ent.add(Player(player_id="player2"))
-    p2_ent.add(Controller())
+    p1e = estore.create_entity(
+        Player(player_id="player1"),
+        Controller(),
+    )
+    con1 = estore[p1e, Controller]
+
+    p2e = estore.create_entity(
+        Player(player_id="player2"),
+        Controller(),
+    )
+    con2 = estore[p2e, Controller]
 
     input = DungeonInput(
         events=[
@@ -38,10 +45,9 @@ def test_ControllerSystem():
         ]
     )
 
-    ControllerSystem(estore=estore, system_input=input).update()
+    controller_system(estore, input)
 
     # The Controller for player 1 should be updated according to p1 events:
-    con1 = p1_ent[Controller]
     assert con1.up is False
     assert con1.down is False
     assert con1.left is False
@@ -51,7 +57,6 @@ def test_ControllerSystem():
     assert con1.action is False
 
     # The Controller for player 2 should be updated according to p2 events:
-    con2 = p2_ent[Controller]
     assert con2.up is False
     assert con2.down is False
     assert con2.left is True
@@ -62,9 +67,8 @@ def test_ControllerSystem():
 
     # An update with no events should leave controllers cleared:
     input = DungeonInput(events=[])
-    ControllerSystem(estore=estore, system_input=input).update()
+    controller_system(estore, input)
 
-    con1 = p1_ent[Controller]
     assert con1.up is False
     assert con1.down is False
     assert con1.left is False
@@ -72,7 +76,7 @@ def test_ControllerSystem():
     assert con1.take is False
     assert con1.drop is False
     assert con1.action is False
-    con2 = p2_ent[Controller]
+
     assert con2.up is False
     assert con2.down is False
     assert con2.left is False
